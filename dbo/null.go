@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"cyberpull.com/gotk/v2/errors"
+	"cyberpull.com/gokit/errors"
 )
 
 type Null[T comparable] struct {

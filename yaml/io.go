@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"go.cyberpull.com/gokit"
+	"cyberpull.com/gokit"
 )
 
 func Read[T any](reader io.Reader) (value T, err error) {
