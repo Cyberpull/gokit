@@ -3,6 +3,7 @@ module cyberpull.com/gokit
 go 1.22.5
 
 require (
+	github.com/google/uuid v1.6.0
 	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.5.7
