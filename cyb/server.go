@@ -7,15 +7,27 @@ import (
 	"cyberpull.com/gokit/graceful"
 )
 
+type RouterCallback func(router Router)
 type ClientInitCallback func(i *Inbound) (err error)
 type InboundPredicate func(i *Inbound) (err error)
 
 type Server struct {
-	opts       Options
+	opts       *Options
 	listener   net.Listener
 	mutex      sync.Mutex
 	mapper     map[string]*Inbound
 	clientInit []ClientInitCallback
+	router     ServerRouter
+}
+
+func (x *Server) Options(opts *Options) {
+	x.opts = opts
+}
+
+func (x *Server) Router(callbacks ...RouterCallback) {
+	for _, callback := range callbacks {
+		callback(&x.router)
+	}
 }
 
 func (x *Server) OnClientInit(callbacks ...ClientInitCallback) {
@@ -87,11 +99,8 @@ func (x *Server) each(callback InboundPredicate) {
 	}
 }
 
-// ==================================
-
-func NewServer(opts Options) *Server {
-	return &Server{
-		opts:   opts,
-		mapper: make(map[string]*Inbound),
+func (x *Server) initialize() {
+	if x.mapper == nil {
+		x.mapper = make(map[string]*Inbound)
 	}
 }

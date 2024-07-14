@@ -1,6 +1,8 @@
 package cyb
 
-import "net"
+import (
+	"net"
+)
 
 type ChanData struct {
 	Data  []byte

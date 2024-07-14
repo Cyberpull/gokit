@@ -33,7 +33,7 @@ func ReadFile[T any](name string) (value T, err error) {
 	return
 }
 
-func GetConfigFile[T any](paths ...string) (value T, err error) {
+func GetConfigFile[T any](paths ...any) (value T, err error) {
 	var name string
 
 	if name, err = gokit.PathFromExecutable(paths...); err != nil {
