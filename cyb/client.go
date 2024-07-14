@@ -1,12 +1,23 @@
 package cyb
 
+import "sync"
+
 type Client struct {
 	Conn
-	opts Options
+	mutex sync.Mutex
+	opts  Options
+}
+
+func (x *Client) Options(opts Options) {
+	x.opts = opts
+}
+
+func (x *Client) Update() {
+	//
 }
 
 func (x *Client) Start() {
-	//
+	x.opts.GenerateUUID()
 }
 
 func (x *Client) handshake() (err error) {
@@ -16,12 +27,4 @@ func (x *Client) handshake() (err error) {
 
 func (x *Client) initialize() {
 	//
-}
-
-func NewClient(opts Options) *Client {
-	opts.GenerateUUID()
-
-	return &Client{
-		opts: opts,
-	}
 }

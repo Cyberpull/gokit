@@ -12,7 +12,7 @@ type ClientInitCallback func(i *Inbound) (err error)
 type InboundPredicate func(i *Inbound) (err error)
 
 type Server struct {
-	opts       *Options
+	opts       Options
 	listener   net.Listener
 	mutex      sync.Mutex
 	mapper     map[string]*Inbound
@@ -20,7 +20,7 @@ type Server struct {
 	router     ServerRouter
 }
 
-func (x *Server) Options(opts *Options) {
+func (x *Server) Options(opts Options) {
 	x.opts = opts
 }
 
