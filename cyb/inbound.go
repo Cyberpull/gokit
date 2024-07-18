@@ -1,11 +1,15 @@
 package cyb
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
+	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/errors"
 	"cyberpull.com/gokit/graceful"
+	"github.com/google/uuid"
 )
 
 type Inbound struct {
@@ -41,9 +45,9 @@ func (x *Inbound) Run() {
 			case <-grace.Done():
 				return
 
-			case in := <-read(&x.Conn, '\n'):
+			case in := <-gokit.IO.ReadLine(x.reader):
 				if in.Error != nil {
-					break
+					return
 				}
 
 				go x.processRequest(in.Data)
@@ -53,7 +57,141 @@ func (x *Inbound) Run() {
 }
 
 func (x *Inbound) handshake() (err error) {
-	// TODO: establish handshake with client
+	_, err = x.WriteStringLine("CYB::SND")
+
+	if err != nil {
+		return
+	}
+
+	resp, err := x.ReadStringLine()
+
+	if err != nil {
+		return
+	}
+
+	if resp != "CYB::RCV" {
+		err = errors.New("Invalid HS Response")
+		return
+	}
+
+	err = x.handshakeProcessName()
+
+	if err != nil {
+		return
+	}
+
+	err = x.handshakeProcessDesc()
+
+	if err != nil {
+		return
+	}
+
+	err = x.handshakeProcessUUID()
+
+	return
+}
+
+func (x *Inbound) handshakeProcessName() (err error) {
+	jsonData, err := json.Marshal(x.server.opts.Name)
+
+	if err != nil {
+		return
+	}
+
+	_, err = x.WriteStringLine("CYB::NAME=" + string(jsonData))
+
+	if err != nil {
+		return
+	}
+
+	resp, err := x.ReadStringLine()
+
+	if err != nil {
+		return
+	}
+
+	if !strings.HasPrefix(resp, "CYB::NAME=") {
+		err = errors.New("Invalid HS Name Received")
+		return
+	}
+
+	resp = strings.TrimPrefix(resp, "CYB::NAME=")
+
+	var name string
+
+	if err = json.Unmarshal([]byte(resp), &name); err != nil {
+		return
+	}
+
+	x.Name = name
+
+	return
+}
+
+func (x *Inbound) handshakeProcessDesc() (err error) {
+	jsonData, err := json.Marshal(x.server.opts.Description)
+
+	if err != nil {
+		return
+	}
+
+	_, err = x.WriteStringLine("CYB::DESC=" + string(jsonData))
+
+	if err != nil {
+		return
+	}
+
+	resp, err := x.ReadStringLine()
+
+	if err != nil {
+		return
+	}
+
+	if !strings.HasPrefix(resp, "CYB::DESC=") {
+		err = errors.New("Invalid HS Description Received")
+		return
+	}
+
+	resp = strings.TrimPrefix(resp, "CYB::DESC=")
+
+	var desc string
+
+	if err = json.Unmarshal([]byte(resp), &desc); err != nil {
+		return
+	}
+
+	x.Description = desc
+
+	return
+}
+
+func (x *Inbound) handshakeProcessUUID() (err error) {
+	clientUUID := uuid.NewString()
+	jsonData, err := json.Marshal(clientUUID)
+
+	if err != nil {
+		return
+	}
+
+	_, err = x.WriteStringLine("CYB::UUID=" + string(jsonData))
+
+	if err != nil {
+		return
+	}
+
+	resp, err := x.ReadStringLine()
+
+	if err != nil {
+		return
+	}
+
+	if resp != "CYB::UUID::RCV" {
+		err = errors.New("Invalid HS UUID Response Received")
+		return
+	}
+
+	x.UUID = clientUUID
+
 	return
 }
 
@@ -73,7 +211,7 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 	graceful.Run(func(grace graceful.Grace) {
 		var req Request
 
-		if err = parse(req, b); err != nil {
+		if err = parse(&req, b); err != nil {
 			return
 		}
 
@@ -85,6 +223,12 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 			}
 
 			if err != nil {
+				resp := mkError(err)
+
+				if data, e := toBytes(resp); e == nil {
+					x.WriteLine(data)
+				}
+
 				log.Println(err)
 			}
 		}()
@@ -103,23 +247,32 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 			Context: grace,
 		}
 
-		resp := &Response{
-			Data:        handler(ctx),
-			ChannelData: req.ChannelData,
-			Request:     req,
+		result := handler(ctx)
+
+		switch d := result.(type) {
+		case *Error:
+			data, err := toBytes(d)
+
+			if err != nil {
+				return
+			}
+
+			x.WriteLine(data)
+
+		case *Data:
+			resp := req.newResponse(d)
+
+			data, err := toBytes(resp)
+
+			if err != nil {
+				return
+			}
+
+			x.WriteLine(data)
+
+		default:
+			err = errors.New("Unknown response")
 		}
-
-		if resp.Code == 0 {
-			resp.Code = 200
-		}
-
-		data, err := toBytes(resp)
-
-		if err != nil {
-			return
-		}
-
-		x.Write(data)
 	})
 
 	return

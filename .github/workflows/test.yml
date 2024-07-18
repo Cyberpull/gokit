@@ -1,0 +1,28 @@
+name: Test GoKit
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: testing
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.22'
+
+    - name: Clean test cache
+      run: go clean
+
+    - name: Install modules
+      run: go mod download
+
+    - name: Run GoKit Tests
+      run: go test ./tests -v

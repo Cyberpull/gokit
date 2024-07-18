@@ -1,6 +1,13 @@
 package cyb
 
-import "context"
+import (
+	"context"
+)
+
+type Output interface {
+	GetCode() int
+	GetContent() any
+}
 
 type Context struct {
 	context.Context
@@ -9,9 +16,12 @@ type Context struct {
 	in  *Inbound
 }
 
-func (x *Context) Update(data Data) (err error) {
+func (x *Context) Update(v any, code ...int) (err error) {
+	data := mkData(v, code...)
+
 	update := &Update{
-		Data:        data,
+		Code:        data.Code,
+		Content:     data.Content,
 		ChannelData: x.req.ChannelData,
 	}
 
@@ -29,7 +39,12 @@ func (x *Context) Update(data Data) (err error) {
 	return
 }
 
-func (x *Context) Success(data Data) Data {
-	data.Code = 200
-	return data
+func (x *Context) Data(v any, code ...int) Output {
+	return newData(v, code...)
+}
+
+func (x *Context) Error(v any, code ...int) Output {
+	err := newError(v, code...)
+	err.ChannelData = x.req.ChannelData
+	return err
 }

@@ -13,6 +13,10 @@ type parsable interface {
 	prefix() string
 }
 
+func hasPrefix[T parsable](x T, data []byte) bool {
+	return bytes.HasPrefix(data, []byte(x.prefix()))
+}
+
 func parse[T parsable](x T, data []byte) (err error) {
 	prefix := []byte(x.prefix())
 

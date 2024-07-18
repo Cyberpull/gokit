@@ -1,6 +1,9 @@
 package cyb
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 type Options struct {
 	Info
@@ -16,6 +19,20 @@ func (x Options) network() string {
 	}
 
 	return "tcp"
+}
+
+func (x Options) freeupAddress() {
+	switch x.network() {
+	case "unix":
+		info, err := os.Stat(x.SocketPath)
+
+		if err == nil && !info.IsDir() {
+			os.Remove(x.SocketPath)
+		}
+
+	default:
+		// Free up port
+	}
 }
 
 func (x Options) address() string {

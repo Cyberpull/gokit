@@ -17,12 +17,19 @@ func errorCode(code ...int) int {
 	return code[0]
 }
 
-func New(message string, code ...int) *Error {
-	return &Error{
+func New(message string, code ...int) (err *Error) {
+	err = &Error{
 		code:    errorCode(code...),
 		message: message,
-		stack:   string(debug.Stack()),
 	}
+
+	defer recover()
+
+	if stack := debug.Stack(); len(stack) > 0 {
+		err.stack = string(stack)
+	}
+
+	return err
 }
 
 func Newf(message string, v ...any) *Error {
