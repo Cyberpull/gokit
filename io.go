@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+type CYBReaderLike interface {
+	ReadBytes(delim byte) ([]byte, error)
+	ReadLine() (b []byte, err error)
+	ReadString(delim byte) (s string, err error)
+	ReadStringLine() (s string, err error)
+}
+
 type IOData[T any] struct {
 	Error error
 	Data  T
@@ -16,58 +23,6 @@ type xIO struct {
 	//
 }
 
-func (x xIO) Read(r io.Reader) (value chan IOData[[]byte]) {
-	value = make(chan IOData[[]byte], 1)
-
-	go func() {
-		resp := IOData[[]byte]{Data: make([]byte, 0)}
-		_, resp.Error = r.Read(resp.Data)
-		value <- resp
-	}()
-
-	return
-}
-
-func (x xIO) ReadSingleByte(r io.Reader) (value chan IOData[byte]) {
-	value = make(chan IOData[byte], 1)
-
-	go func() {
-		var resp IOData[byte]
-
-		switch reader := r.(type) {
-		case *bufio.Reader:
-			resp.Data, resp.Error = reader.ReadByte()
-
-		default:
-			resp.Data, resp.Error = bufio.NewReader(r).ReadByte()
-		}
-
-		value <- resp
-	}()
-
-	return
-}
-
-func (x xIO) ReadSingleRune(r io.Reader) (value chan IOData[rune]) {
-	value = make(chan IOData[rune], 1)
-
-	go func() {
-		var resp IOData[rune]
-
-		switch reader := r.(type) {
-		case *bufio.Reader:
-			resp.Data, _, resp.Error = reader.ReadRune()
-
-		default:
-			resp.Data, _, resp.Error = bufio.NewReader(r).ReadRune()
-		}
-
-		value <- resp
-	}()
-
-	return
-}
-
 func (x xIO) ReadBytes(r io.Reader, delim byte) (value chan IOData[[]byte]) {
 	value = make(chan IOData[[]byte], 1)
 
@@ -75,15 +30,17 @@ func (x xIO) ReadBytes(r io.Reader, delim byte) (value chan IOData[[]byte]) {
 		var resp IOData[[]byte]
 
 		switch reader := r.(type) {
-		case *bufio.Reader:
+		case CYBReaderLike:
 			resp.Data, resp.Error = reader.ReadBytes(delim)
 
 		default:
 			buff := bufio.NewReader(r)
 			resp.Data, resp.Error = buff.ReadBytes(delim)
-		}
 
-		resp.Data = bytes.TrimSuffix(resp.Data, []byte{delim})
+			if resp.Error == nil {
+				resp.Data = bytes.TrimSuffix(resp.Data, []byte{delim})
+			}
+		}
 
 		value <- resp
 	}()
@@ -92,7 +49,28 @@ func (x xIO) ReadBytes(r io.Reader, delim byte) (value chan IOData[[]byte]) {
 }
 
 func (x xIO) ReadLine(r io.Reader) (value chan IOData[[]byte]) {
-	return x.ReadBytes(r, '\n')
+	value = make(chan IOData[[]byte], 1)
+
+	go func() {
+		var resp IOData[[]byte]
+
+		switch reader := r.(type) {
+		case CYBReaderLike:
+			resp.Data, resp.Error = reader.ReadLine()
+
+		default:
+			buff := bufio.NewReader(r)
+			resp.Data, resp.Error = buff.ReadBytes('\n')
+
+			if resp.Error == nil {
+				resp.Data = bytes.TrimSuffix(resp.Data, []byte{'\n'})
+			}
+		}
+
+		value <- resp
+	}()
+
+	return
 }
 
 func (x xIO) ReadString(r io.Reader, delim byte) (value chan IOData[string]) {
@@ -102,14 +80,17 @@ func (x xIO) ReadString(r io.Reader, delim byte) (value chan IOData[string]) {
 		var resp IOData[string]
 
 		switch reader := r.(type) {
-		case *bufio.Reader:
+		case CYBReaderLike:
 			resp.Data, resp.Error = reader.ReadString(delim)
 
 		default:
-			resp.Data, resp.Error = bufio.NewReader(r).ReadString(delim)
-		}
+			buff := bufio.NewReader(r)
+			resp.Data, resp.Error = buff.ReadString('\n')
 
-		resp.Data = strings.TrimSuffix(resp.Data, string([]byte{delim}))
+			if resp.Error == nil {
+				resp.Data = strings.TrimSuffix(resp.Data, string([]byte{delim}))
+			}
+		}
 
 		value <- resp
 	}()
@@ -117,8 +98,31 @@ func (x xIO) ReadString(r io.Reader, delim byte) (value chan IOData[string]) {
 	return
 }
 
-func (x xIO) ReadLineString(r io.Reader) (value chan IOData[string]) {
-	return x.ReadString(r, '\n')
+func (x xIO) ReadStringLine(r io.Reader) (value chan IOData[string]) {
+	value = make(chan IOData[string], 1)
+
+	go func() {
+		var resp IOData[string]
+
+		switch reader := r.(type) {
+		case CYBReaderLike:
+			resp.Data, resp.Error = reader.ReadStringLine()
+
+		default:
+			scanner := bufio.NewScanner(r)
+			scanner.Split(bufio.ScanLines)
+
+			if scanner.Scan() {
+				resp.Data = scanner.Text()
+			}
+
+			resp.Error = scanner.Err()
+		}
+
+		value <- resp
+	}()
+
+	return
 }
 
 var IO xIO

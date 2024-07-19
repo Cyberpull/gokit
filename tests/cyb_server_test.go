@@ -4,17 +4,15 @@ import (
 	"cyberpull.com/gokit/cyb"
 )
 
-func startCybServer(server *cyb.Server, address string) (err error) {
+func startCybServer(server *cyb.Server, opts cyb.Options) (err error) {
+	opts.Info = cyb.Info{
+		Name:        "Demo Server",
+		Description: "CYB Demo Server",
+	}
+
 	server.Routes(addRoutes())
 
-	err = <-server.Connect(&cyb.Options{
-		Network:    "unix",
-		SocketPath: address,
-		Info: cyb.Info{
-			Name:        "Demo Server",
-			Description: "CYB Demo Server",
-		},
-	})
+	err = <-server.Connect(&opts)
 
 	if err != nil {
 		return
@@ -32,11 +30,7 @@ func addRoutes() cyb.RequestRouterCallback {
 		})
 
 		router.Set("GET", "/test/update", func(ctx *cyb.Context) cyb.Output {
-			ctx.Update(cyb.Data{
-				Code:    200,
-				Content: "Demo Update Successful",
-			})
-
+			ctx.Update("Demo Update Successful")
 			return ctx.Data("Demo Update Successful")
 		})
 	}

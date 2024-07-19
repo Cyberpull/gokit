@@ -11,7 +11,7 @@ import (
 type UpdateHandler func(data Data)
 
 type UpdateRouter interface {
-	Add(method, channel string, handler UpdateHandler)
+	On(method, channel string, handler UpdateHandler)
 }
 
 type ClientUpdateRouter struct {
@@ -19,7 +19,7 @@ type ClientUpdateRouter struct {
 	mapper map[string][]UpdateHandler
 }
 
-func (x *ClientUpdateRouter) Add(method, channel string, handler UpdateHandler) {
+func (x *ClientUpdateRouter) On(method, channel string, handler UpdateHandler) {
 	x.mutex.Lock()
 
 	defer x.mutex.Unlock()

@@ -35,9 +35,8 @@ func (x *Server) OnClientInit(callbacks ...ClientInitCallback) {
 func (x *Server) Stop() (err error) {
 	if x.listener != nil {
 		x.listener.Close()
+		x.listener = nil
 	}
-
-	x.listener = nil
 
 	return
 }
@@ -121,8 +120,9 @@ func (x *Server) Run() (err error) {
 				}
 
 				inbound := &Inbound{
-					Conn:   mkConn(resp.Data),
-					server: x,
+					conn:     newConn(resp.Data),
+					updQueue: make(map[string]chan string),
+					server:   x,
 				}
 
 				go inbound.Run()
@@ -150,20 +150,6 @@ func (x *Server) remove(i *Inbound) {
 
 	if i.UUID != "" {
 		delete(d(x).mapper, i.UUID)
-	}
-}
-
-func (x *Server) each(callback InboundPredicate) {
-	x.mutex.Lock()
-
-	defer x.mutex.Unlock()
-
-	for _, i := range x.mapper {
-		err := callback(i)
-
-		if err != nil {
-			break
-		}
 	}
 }
 

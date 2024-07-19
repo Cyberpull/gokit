@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/cyb"
 
 	"github.com/stretchr/testify/assert"
@@ -19,13 +20,22 @@ type CYBTestSuite struct {
 }
 
 func (x *CYBTestSuite) SetupSuite() {
-	address := os.TempDir() + "/demo.cyb.sock"
+	opts := cyb.Options{
+		Network:    "unix",
+		SocketPath: os.TempDir() + "/test.cyb.sock",
+	}
+
+	// opts := cyb.Options{
+	// 	Network:    "tcp",
+	// 	Host:    "127.0.0.1",
+	// 	Port:    1988,
+	// }
 
 	// Start GoKit CYB Server
-	require.NoError(x.T(), startCybServer(&x.server, address))
+	require.NoError(x.T(), startCybServer(&x.server, opts))
 
 	// Start GoKit CYB Client
-	require.NoError(x.T(), startCybClient(&x.client, address))
+	require.NoError(x.T(), startCybClient(&x.client, opts))
 }
 
 func (x *CYBTestSuite) TearDownSuite() {
@@ -37,13 +47,30 @@ func (x *CYBTestSuite) TearDownSuite() {
 }
 
 func (x *CYBTestSuite) TestRequest() {
-	value, err := x.client.Request("GET", "/test/request", nil)
+	value, err := cyb.MakeRequest[string](&x.client, "GET", "/test/request", nil)
 	require.NoError(x.T(), err)
-	assert.Equal(x.T(), "Demo Request Successful", value.Content)
+
+	assert.Equal(x.T(), "Demo Request Successful", value)
 }
 
 func (x *CYBTestSuite) TestUpdate() {
-	//
+	updateChan := make(chan gokit.IOData[string], 1)
+
+	x.client.On("GET", "/test/update", func(data cyb.Data) {
+		var update gokit.IOData[string]
+
+		update.Error = data.Bind(&update.Data)
+
+		updateChan <- update
+	})
+
+	value, err := cyb.MakeRequest[string](&x.client, "GET", "/test/update", nil)
+	require.NoError(x.T(), err)
+	assert.Equal(x.T(), "Demo Update Successful", value)
+
+	update := <-updateChan
+	require.NoError(x.T(), update.Error)
+	assert.Equal(x.T(), "Demo Update Successful", update.Data)
 }
 
 func TestCYB(t *testing.T) {

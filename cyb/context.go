@@ -12,8 +12,9 @@ type Output interface {
 type Context struct {
 	context.Context
 
-	req *Request
-	in  *Inbound
+	req   *Request
+	in    *Inbound
+	queue []*Update
 }
 
 func (x *Context) Update(v any, code ...int) (err error) {
@@ -25,16 +26,21 @@ func (x *Context) Update(v any, code ...int) (err error) {
 		ChannelData: x.req.ChannelData,
 	}
 
-	value, err := toBytes(update)
+	err = x.in.Update(update)
 
-	if err != nil {
-		return
+	return
+}
+
+func (x *Context) UpdateAll(v any, code ...int) (err error) {
+	data := mkData(v, code...)
+
+	update := &Update{
+		Code:        data.Code,
+		Content:     data.Content,
+		ChannelData: x.req.ChannelData,
 	}
 
-	x.in.server.each(func(i *Inbound) (err error) {
-		i.Write(value)
-		return
-	})
+	err = x.in.UpdateAll(update)
 
 	return
 }

@@ -2,9 +2,9 @@ package cyb
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"cyberpull.com/gokit"
@@ -17,9 +17,10 @@ import (
 type UpdateRouterCallback func(router UpdateRouter)
 
 type Client struct {
-	conn           Conn
+	conn           *Conn
 	srvInfo        Info
 	opts           *Options
+	mutex          sync.Mutex
 	router         ClientUpdateRouter
 	queue          map[string]chan parsable
 	canSendRequest bool
@@ -33,7 +34,7 @@ func (x *Client) Updates(callbacks ...UpdateRouterCallback) {
 }
 
 func (x *Client) On(method, channel string, handler UpdateHandler) {
-	x.router.Add(method, channel, handler)
+	x.router.On(method, channel, handler)
 }
 
 func (x *Client) Request(method, channel string, data any) (value Data, err error) {
@@ -63,31 +64,74 @@ func (x *Client) Request(method, channel string, data any) (value Data, err erro
 		return
 	}
 
-	parsableChan := make(chan parsable, 1)
+	resp := <-x.getResponse(&req)
 
-	d(x).queue[req.UUID] = parsableChan
-
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*30)
-
-	defer func() {
-		delete(x.queue, req.UUID)
-		cancel()
-	}()
-
-	select {
-	case <-ctx.Done():
-		err = errors.New("Request timed out.")
+	if err = resp.Error; err != nil {
 		return
-
-	case resp := <-parsableChan:
-		switch p := resp.(type) {
-		case Data:
-			value = p
-
-		case Response:
-			value = p.Data
-		}
 	}
+
+	value = resp.Data
+
+	return
+}
+
+func (x *Client) sendResponse(reqId string, resp parsable) {
+	x.mutex.Lock()
+
+	defer x.mutex.Unlock()
+
+	if respChan, ok := d(x).queue[reqId]; ok {
+		respChan <- resp
+	}
+
+	delete(x.queue, reqId)
+}
+
+func (x *Client) addResponseChannel(reqId string, respChan chan parsable) {
+	x.mutex.Lock()
+
+	defer x.mutex.Unlock()
+
+	d(x).queue[reqId] = respChan
+}
+
+func (x *Client) getResponse(req *Request) (value chan gokit.IOData[Data]) {
+	value = make(chan gokit.IOData[Data], 1)
+
+	go func() {
+		var resp gokit.IOData[Data]
+
+		respChan := make(chan parsable, 1)
+
+		x.addResponseChannel(req.UUID, respChan)
+
+		// d(x).queue[req.UUID] = respChan
+
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*30)
+
+		defer func() {
+			value <- resp
+			cancel()
+		}()
+
+		select {
+		case <-ctx.Done():
+			resp.Error = errors.New("Request timed out.")
+			return
+
+		case data := <-respChan:
+			switch d := data.(type) {
+			case Error:
+				resp.Error = d.Error()
+
+			case Data:
+				resp.Data = d
+
+			case Response:
+				resp.Data = d.Data
+			}
+		}
+	}()
 
 	return
 }
@@ -122,12 +166,14 @@ func (x *Client) Start(opts *Options) chan error {
 }
 
 func (x *Client) isConnected() bool {
-	return x.conn.conn != nil && x.conn.reader != nil
+	return x.conn != nil
 }
 
 func (x *Client) Stop() (err error) {
-	x.conn.Close()
-	x.conn = Conn{}
+	if x.conn != nil {
+		x.conn.Close()
+		x.conn = nil
+	}
 
 	x.canSendRequest = false
 	x.isConnecting = false
@@ -179,7 +225,7 @@ func (x *Client) Connect(opts *Options) (errChan chan error) {
 			return
 		}
 
-		x.conn = mkConn(conn)
+		x.conn = newConn(conn)
 
 		err = x.handshake()
 	})
@@ -203,7 +249,7 @@ func (x *Client) Run() (err error) {
 			case <-grace.Done():
 				return
 
-			case in := <-gokit.IO.ReadLine(x.conn.conn):
+			case in := <-gokit.IO.ReadLine(x.conn):
 				if in.Error != nil {
 					return
 				}
@@ -264,13 +310,13 @@ func (x *Client) handshakeProcessName() (err error) {
 	}
 
 	msg = strings.TrimPrefix(msg, "CYB::NAME=")
-	err = json.Unmarshal([]byte(msg), &x.srvInfo.Name)
+	err = parseJson([]byte(msg), &x.srvInfo.Name)
 
 	if err != nil {
 		return
 	}
 
-	jsonData, err := json.Marshal(x.opts.Name)
+	jsonData, err := toJson(x.opts.Name)
 
 	if err != nil {
 		return
@@ -294,13 +340,13 @@ func (x *Client) handshakeProcessDesc() (err error) {
 	}
 
 	msg = strings.TrimPrefix(msg, "CYB::DESC=")
-	err = json.Unmarshal([]byte(msg), &x.srvInfo.Description)
+	err = parseJson([]byte(msg), &x.srvInfo.Description)
 
 	if err != nil {
 		return
 	}
 
-	jsonData, err := json.Marshal(x.opts.Description)
+	jsonData, err := toJson(x.opts.Description)
 
 	if err != nil {
 		return
@@ -324,7 +370,7 @@ func (x *Client) handshakeProcessUUID() (err error) {
 	}
 
 	msg = strings.TrimPrefix(msg, "CYB::UUID=")
-	err = json.Unmarshal([]byte(msg), &x.opts.UUID)
+	err = parseJson([]byte(msg), &x.opts.UUID)
 
 	if err != nil {
 		return
@@ -367,14 +413,7 @@ func (x *Client) processError(b []byte) (err error) {
 
 	switch true {
 	case data.UUID != "":
-		if entry, ok := d(x).queue[data.UUID]; ok {
-			entry <- data
-		}
-
-		delete(x.queue, data.UUID)
-
-	case data.Method != "" && data.Channel != "":
-		x.router.Send(data.Method, data.Channel, data.ToData())
+		x.sendResponse(data.UUID, data)
 
 	default:
 		// Do something
@@ -390,6 +429,8 @@ func (x *Client) processUpdate(b []byte) (err error) {
 		return
 	}
 
+	// x.conn.WriteStringLine("OK::" + upd.UUID)
+
 	x.router.Send(upd.Method, upd.Channel, upd.Data())
 
 	return
@@ -402,11 +443,7 @@ func (x *Client) processResponse(b []byte) (err error) {
 		return
 	}
 
-	if data, ok := d(x).queue[resp.UUID]; ok {
-		data <- resp
-	}
-
-	delete(x.queue, resp.UUID)
+	x.sendResponse(resp.UUID, resp)
 
 	return
 }

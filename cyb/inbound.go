@@ -1,7 +1,7 @@
 package cyb
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
@@ -9,13 +9,15 @@ import (
 	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/errors"
 	"cyberpull.com/gokit/graceful"
+
 	"github.com/google/uuid"
 )
 
 type Inbound struct {
-	Conn
 	Info
-	server *Server
+	conn     *Conn
+	server   *Server
+	updQueue map[string]chan string
 }
 
 func (x *Inbound) Run() {
@@ -45,7 +47,7 @@ func (x *Inbound) Run() {
 			case <-grace.Done():
 				return
 
-			case in := <-gokit.IO.ReadLine(x.reader):
+			case in := <-gokit.IO.ReadLine(x.conn):
 				if in.Error != nil {
 					return
 				}
@@ -56,14 +58,42 @@ func (x *Inbound) Run() {
 	})
 }
 
-func (x *Inbound) handshake() (err error) {
-	_, err = x.WriteStringLine("CYB::SND")
+func (x *Inbound) Update(update *Update) (err error) {
+	value, err := toBytes(update)
 
 	if err != nil {
 		return
 	}
 
-	resp, err := x.ReadStringLine()
+	_, err = x.conn.WriteLine(value)
+
+	return
+}
+
+func (x *Inbound) UpdateAll(update *Update) (err error) {
+	value, err := toBytes(update)
+
+	if err != nil {
+		return
+	}
+
+	go func() {
+		for _, in := range x.server.mapper {
+			in.conn.WriteLine(value)
+		}
+	}()
+
+	return
+}
+
+func (x *Inbound) handshake() (err error) {
+	_, err = x.conn.WriteStringLine("CYB::SND")
+
+	if err != nil {
+		return
+	}
+
+	resp, err := x.conn.ReadStringLine()
 
 	if err != nil {
 		return
@@ -92,19 +122,19 @@ func (x *Inbound) handshake() (err error) {
 }
 
 func (x *Inbound) handshakeProcessName() (err error) {
-	jsonData, err := json.Marshal(x.server.opts.Name)
+	jsonData, err := toJson(x.server.opts.Name)
 
 	if err != nil {
 		return
 	}
 
-	_, err = x.WriteStringLine("CYB::NAME=" + string(jsonData))
+	_, err = x.conn.WriteStringLine("CYB::NAME=" + string(jsonData))
 
 	if err != nil {
 		return
 	}
 
-	resp, err := x.ReadStringLine()
+	resp, err := x.conn.ReadStringLine()
 
 	if err != nil {
 		return
@@ -119,7 +149,7 @@ func (x *Inbound) handshakeProcessName() (err error) {
 
 	var name string
 
-	if err = json.Unmarshal([]byte(resp), &name); err != nil {
+	if err = parseJson([]byte(resp), &name); err != nil {
 		return
 	}
 
@@ -129,19 +159,19 @@ func (x *Inbound) handshakeProcessName() (err error) {
 }
 
 func (x *Inbound) handshakeProcessDesc() (err error) {
-	jsonData, err := json.Marshal(x.server.opts.Description)
+	jsonData, err := toJson(x.server.opts.Description)
 
 	if err != nil {
 		return
 	}
 
-	_, err = x.WriteStringLine("CYB::DESC=" + string(jsonData))
+	_, err = x.conn.WriteStringLine("CYB::DESC=" + string(jsonData))
 
 	if err != nil {
 		return
 	}
 
-	resp, err := x.ReadStringLine()
+	resp, err := x.conn.ReadStringLine()
 
 	if err != nil {
 		return
@@ -156,7 +186,7 @@ func (x *Inbound) handshakeProcessDesc() (err error) {
 
 	var desc string
 
-	if err = json.Unmarshal([]byte(resp), &desc); err != nil {
+	if err = parseJson([]byte(resp), &desc); err != nil {
 		return
 	}
 
@@ -167,19 +197,19 @@ func (x *Inbound) handshakeProcessDesc() (err error) {
 
 func (x *Inbound) handshakeProcessUUID() (err error) {
 	clientUUID := uuid.NewString()
-	jsonData, err := json.Marshal(clientUUID)
+	jsonData, err := toJson(clientUUID)
 
 	if err != nil {
 		return
 	}
 
-	_, err = x.WriteStringLine("CYB::UUID=" + string(jsonData))
+	_, err = x.conn.WriteStringLine("CYB::UUID=" + string(jsonData))
 
 	if err != nil {
 		return
 	}
 
-	resp, err := x.ReadStringLine()
+	resp, err := x.conn.ReadStringLine()
 
 	if err != nil {
 		return
@@ -209,6 +239,25 @@ func (x *Inbound) onClientInit() (err error) {
 
 func (x *Inbound) processRequest(b []byte) (err error) {
 	graceful.Run(func(grace graceful.Grace) {
+		prefix := []byte("OK::")
+
+		if bytes.HasPrefix(b, prefix) {
+			log.Printf("%s\n", b)
+			updUuid := string(bytes.TrimPrefix(b, prefix))
+
+			if updUuid == "" {
+				return
+			}
+
+			if respChan, ok := x.updQueue[updUuid]; ok {
+				respChan <- "OK"
+			}
+
+			delete(x.updQueue, updUuid)
+
+			return
+		}
+
 		var req Request
 
 		if err = parse(&req, b); err != nil {
@@ -226,7 +275,7 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 				resp := mkError(err)
 
 				if data, e := toBytes(resp); e == nil {
-					x.WriteLine(data)
+					x.conn.WriteLine(data)
 				}
 
 				log.Println(err)
@@ -244,6 +293,7 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 		ctx := &Context{
 			in:      x,
 			req:     &req,
+			queue:   make([]*Update, 0),
 			Context: grace,
 		}
 
@@ -257,7 +307,7 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 				return
 			}
 
-			x.WriteLine(data)
+			x.conn.WriteLine(data)
 
 		case *Data:
 			resp := req.newResponse(d)
@@ -268,7 +318,7 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 				return
 			}
 
-			x.WriteLine(data)
+			x.conn.WriteLine(data)
 
 		default:
 			err = errors.New("Unknown response")

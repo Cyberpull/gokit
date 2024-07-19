@@ -27,8 +27,20 @@ func (x Error) prefix() string {
 	return "ERROR::"
 }
 
-func (x Error) ToData() Data {
-	return Data{Code: x.Code, Content: x.Message}
+func (x Error) ToData() (data Data) {
+	var err error
+
+	data.Code = x.Code
+
+	if data.Content, err = toJson(&x); err != nil {
+		data.Content = nil
+	}
+
+	return
+}
+
+func (x Error) Error() (err error) {
+	return errors.New(x.Message, x.Code)
 }
 
 // ================================

@@ -9,8 +9,16 @@ type ChannelData struct {
 }
 
 type Data struct {
-	Code    int `json:"code"`
-	Content any `json:"content"`
+	Code    int    `json:"code"`
+	Content []byte `json:"content"`
+}
+
+func (x Data) name() string {
+	return "data"
+}
+
+func (x Data) prefix() string {
+	return "DATA::"
 }
 
 func (x Data) GetCode() int {
@@ -21,12 +29,17 @@ func (x Data) GetContent() any {
 	return x.Content
 }
 
-func (x Data) name() string {
-	return "data"
+func (x *Data) SetContent(v any) (err error) {
+	x.Content, err = toJson(v)
+	return
 }
 
-func (x Data) prefix() string {
-	return "DATA::"
+func (x Data) Bind(v any) (err error) {
+	if x.Content == nil {
+		return
+	}
+
+	return parseJson(x.Content, v)
 }
 
 func (x Data) IsError() bool {
@@ -40,6 +53,8 @@ func newData(v any, code ...int) (data *Data) {
 }
 
 func mkData(v any, code ...int) (data Data) {
+	var err error
+
 	switch d := v.(type) {
 	case Data:
 		data = d
@@ -53,7 +68,11 @@ func mkData(v any, code ...int) (data Data) {
 		}
 
 		data.Code = code[0]
-		data.Content = v
+		data.Content, err = toJson(gokit.Ptr(v))
+
+		if err != nil {
+			data.Content = nil
+		}
 	}
 
 	switch true {

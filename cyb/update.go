@@ -2,8 +2,8 @@ package cyb
 
 type Update struct {
 	ChannelData
-	Code    int `json:"code"`
-	Content any `json:"content"`
+	Code    int    `json:"code"`
+	Content []byte `json:"content"`
 }
 
 func (x Update) name() string {
@@ -12,6 +12,11 @@ func (x Update) name() string {
 
 func (x Update) prefix() string {
 	return "UPDATE::"
+}
+
+func (x *Update) SetContent(v any) (err error) {
+	x.Content, err = toJson(v)
+	return
 }
 
 func (x Update) Data() Data {

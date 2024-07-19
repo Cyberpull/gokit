@@ -2,7 +2,6 @@ package cyb
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"cyberpull.com/gokit/errors"
@@ -27,13 +26,13 @@ func parse[T parsable](x T, data []byte) (err error) {
 
 	data = bytes.TrimPrefix(data, prefix)
 
-	err = json.Unmarshal(data, x)
+	err = parseJson(data, x)
 
 	return
 }
 
 func toBytes[T parsable](x T) (value []byte, err error) {
-	value, err = json.Marshal(x)
+	value, err = toJson(x)
 
 	if err != nil {
 		return

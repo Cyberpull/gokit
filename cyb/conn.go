@@ -2,16 +2,32 @@ package cyb
 
 import (
 	"bufio"
+	"bytes"
 	"net"
 	"strings"
+	"sync"
 )
 
 type Conn struct {
+	wm     sync.Mutex
+	rm     sync.Mutex
 	conn   net.Conn
 	reader *bufio.Reader
 }
 
+func (x *Conn) Read(p []byte) (n int, err error) {
+	x.rm.Lock()
+
+	defer x.rm.Unlock()
+
+	return x.conn.Read(p)
+}
+
 func (x *Conn) Write(p []byte) (n int, err error) {
+	x.wm.Lock()
+
+	defer x.wm.Unlock()
+
 	return x.conn.Write(p)
 }
 
@@ -19,12 +35,26 @@ func (x *Conn) WriteLine(p []byte) (n int, err error) {
 	return x.Write(append(p, '\n'))
 }
 
+func (x *Conn) WriteString(s string) (n int, err error) {
+	return x.Write([]byte(s))
+}
+
 func (x *Conn) WriteStringLine(s string) (n int, err error) {
 	return x.WriteLine([]byte(s))
 }
 
-func (x *Conn) ReadLine() ([]byte, error) {
-	return x.reader.ReadBytes('\n')
+func (x *Conn) ReadBytes(delim byte) (b []byte, err error) {
+	defer func() {
+		b = bytes.TrimSuffix(b, []byte{delim})
+	}()
+
+	b, err = x.reader.ReadBytes(delim)
+
+	return
+}
+
+func (x *Conn) ReadLine() (b []byte, err error) {
+	return x.ReadBytes('\n')
 }
 
 func (x *Conn) ReadString(delim byte) (s string, err error) {
@@ -32,10 +62,12 @@ func (x *Conn) ReadString(delim byte) (s string, err error) {
 		s = strings.TrimSuffix(s, string([]byte{delim}))
 	}()
 
-	return x.reader.ReadString(delim)
+	s, err = x.reader.ReadString(delim)
+
+	return
 }
 
-func (x *Conn) ReadStringLine() (string, error) {
+func (x *Conn) ReadStringLine() (s string, err error) {
 	return x.ReadString('\n')
 }
 
@@ -49,9 +81,8 @@ func (x *Conn) Close() error {
 
 // ==================================
 
-func mkConn(conn net.Conn) Conn {
-	return Conn{
-		conn:   conn,
-		reader: bufio.NewReader(conn),
-	}
+func newConn(conn net.Conn) (value *Conn) {
+	value = &Conn{conn: conn}
+	value.reader = bufio.NewReader(value)
+	return
 }
