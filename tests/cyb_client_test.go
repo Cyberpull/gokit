@@ -1,9 +1,13 @@
 package tests
 
-import "cyberpull.com/gokit/cyb"
+import (
+	"time"
+
+	"cyberpull.com/gokit/cyb"
+)
 
 func startCybClient(client *cyb.Client, address string) (err error) {
-	client.Options(&cyb.Options{
+	err = <-client.Connect(&cyb.Options{
 		Network:    "unix",
 		SocketPath: address,
 		Info: cyb.Info{
@@ -12,5 +16,13 @@ func startCybClient(client *cyb.Client, address string) (err error) {
 		},
 	})
 
-	return <-client.Start(false)
+	if err != nil {
+		return
+	}
+
+	go client.Run()
+
+	time.Sleep(time.Second / 2)
+
+	return
 }

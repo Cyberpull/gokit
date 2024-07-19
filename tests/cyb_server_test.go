@@ -1,9 +1,13 @@
 package tests
 
-import "cyberpull.com/gokit/cyb"
+import (
+	"cyberpull.com/gokit/cyb"
+)
 
 func startCybServer(server *cyb.Server, address string) (err error) {
-	server.Options(&cyb.Options{
+	server.Routes(addRoutes())
+
+	err = <-server.Connect(&cyb.Options{
 		Network:    "unix",
 		SocketPath: address,
 		Info: cyb.Info{
@@ -12,9 +16,13 @@ func startCybServer(server *cyb.Server, address string) (err error) {
 		},
 	})
 
-	server.Routes(addRoutes())
+	if err != nil {
+		return
+	}
 
-	return <-server.Listen()
+	go server.Run()
+
+	return
 }
 
 func addRoutes() cyb.RequestRouterCallback {

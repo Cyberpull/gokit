@@ -20,12 +20,6 @@ type Server struct {
 	mapper     map[string]*Inbound
 	clientInit []ClientInitCallback
 	router     ServerRequestRouter
-	isRunning  bool
-	done       chan bool
-}
-
-func (x *Server) Options(opts *Options) {
-	x.opts = opts
 }
 
 func (x *Server) Routes(callbacks ...RequestRouterCallback) {
@@ -38,47 +32,83 @@ func (x *Server) OnClientInit(callbacks ...ClientInitCallback) {
 	x.clientInit = callbacks
 }
 
-func (x *Server) Done() chan bool {
-	return x.done
-}
-
 func (x *Server) Stop() (err error) {
 	if x.listener != nil {
 		x.listener.Close()
 	}
 
+	x.listener = nil
+
 	return
 }
 
-func (x *Server) Listen() (errChan chan error) {
-	errChan = make(chan error, 1)
+func (x *Server) isListening() bool {
+	return x.listener != nil
+}
 
-	if x.isRunning {
-		errChan <- errors.New("Server already running.")
+func (x *Server) Listen(opts *Options) (err error) {
+	err = <-x.Connect(opts)
+
+	if err != nil {
 		return
 	}
 
+	err = x.Run()
+
+	return
+}
+
+func (x *Server) Connect(opts *Options) (errChan chan error) {
+	errChan = make(chan error, 1)
+
 	go graceful.Run(func(grace graceful.Grace) {
-		x.isRunning = true
-		x.done = make(chan bool, 1)
-
-		defer func() {
-			x.isRunning = false
-			x.done <- true
-		}()
-
 		var err error
 
-		x.opts.freeupAddress()
-
-		x.listener, err = net.Listen(x.opts.network(), x.opts.address())
-
-		if err != nil {
+		defer func() {
 			errChan <- err
+
+			if err != nil {
+				x.Stop()
+			}
+		}()
+
+		if opts == nil {
+			err = errors.New("Invalid options")
 			return
 		}
 
-		errChan <- nil
+		x.opts = opts
+
+		if x.isListening() {
+			err = errors.New("Server already running.")
+			return
+		}
+
+		x.opts.freeupAddress()
+
+		x.listener, err = net.Listen(opts.network(), opts.address())
+
+		if err != nil {
+			return
+		}
+	})
+
+	return
+}
+
+func (x *Server) Run() (err error) {
+	graceful.Run(func(grace graceful.Grace) {
+		if x.listener == nil {
+			err = errors.New("Server already running.")
+			return
+		}
+
+		defer x.Stop()
+
+		if !x.isListening() {
+			err = errors.New("Server not running.")
+			return
+		}
 
 		for {
 			select {
@@ -86,7 +116,7 @@ func (x *Server) Listen() (errChan chan error) {
 				return
 
 			case resp := <-gokit.Net.Accept(x.listener):
-				if err = resp.Error; err != nil {
+				if resp.Error != nil {
 					return
 				}
 

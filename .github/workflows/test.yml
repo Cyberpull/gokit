@@ -19,7 +19,7 @@ jobs:
         go-version: '1.22'
 
     - name: Clean test cache
-      run: go clean
+      run: go clean -testcache
 
     - name: Install modules
       run: go mod download

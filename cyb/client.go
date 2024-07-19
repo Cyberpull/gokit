@@ -22,14 +22,8 @@ type Client struct {
 	opts           *Options
 	router         ClientUpdateRouter
 	queue          map[string]chan parsable
-	done           chan bool
 	canSendRequest bool
 	isConnecting   bool
-	isConnected    bool
-}
-
-func (x *Client) Options(opts *Options) {
-	x.opts = opts
 }
 
 func (x *Client) Updates(callbacks ...UpdateRouterCallback) {
@@ -98,61 +92,72 @@ func (x *Client) Request(method, channel string, data any) (value Data, err erro
 	return
 }
 
-func (x *Client) Done() chan bool {
-	return x.done
-}
-
-func (x *Client) Start(autoReconnect ...bool) chan error {
-	x.done = make(chan bool, 1)
-
-	defer func() {
-		x.done <- true
-	}()
-
+func (x *Client) Start(opts *Options) chan error {
 	errChan := make(chan error, 1)
 
-	go func() {
+	go graceful.Run(func(grace graceful.Grace) {
 		var resultSent bool
 
 		for {
-			err := <-x.connect()
+			select {
+			case <-grace.Done():
+				return
 
-			if !resultSent {
-				resultSent = true
-				errChan <- err
+			case err := <-x.Connect(opts):
+				if !resultSent {
+					resultSent = true
+					errChan <- err
+				}
+
+				if err == nil {
+					x.Run()
+				}
+
+				time.Sleep(time.Second * 10)
 			}
-
-			if err == nil {
-				break
-			}
-
-			if len(autoReconnect) > 0 && !autoReconnect[0] {
-				break
-			}
-
-			time.Sleep(time.Second * 10)
 		}
-	}()
+	})
 
 	return errChan
 }
 
+func (x *Client) isConnected() bool {
+	return x.conn.conn != nil && x.conn.reader != nil
+}
+
 func (x *Client) Stop() (err error) {
 	x.conn.Close()
+	x.conn = Conn{}
+
+	x.canSendRequest = false
+	x.isConnecting = false
+
 	return
 }
 
-func (x *Client) connect() (errChan chan error) {
+func (x *Client) Connect(opts *Options) (errChan chan error) {
 	errChan = make(chan error, 1)
 
-	go func() {
-		if x.opts == nil {
-			errChan <- errors.New("Invalid options")
+	graceful.Run(func(grace graceful.Grace) {
+		var err error
+
+		defer func() {
+			errChan <- err
+
+			if err != nil {
+				x.Stop()
+			}
+		}()
+
+		if opts == nil {
+			err = errors.New("Invalid options")
 			return
 		}
 
+		x.opts = opts
+
 		if x.isConnecting {
-			errChan <- errors.New("Client already connecting")
+			err = errors.New("Client already connecting")
 			return
 		}
 
@@ -162,55 +167,51 @@ func (x *Client) connect() (errChan chan error) {
 			x.isConnecting = false
 		}()
 
-		if x.isConnected {
-			errChan <- errors.New("Client already connected")
+		if x.isConnected() {
+			err = errors.New("Client already connected")
 			return
 		}
 
-		graceful.Run(func(grace graceful.Grace) {
-			conn, err := net.Dial(x.opts.network(), x.opts.address())
+		conn, err := net.Dial(x.opts.network(), x.opts.address())
 
-			if err != nil {
-				errChan <- err
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		x.conn = mkConn(conn)
+
+		err = x.handshake()
+	})
+
+	return
+}
+
+func (x *Client) Run() (err error) {
+	graceful.Run(func(grace graceful.Grace) {
+		defer x.Stop()
+
+		if !x.isConnected() {
+			err = errors.New("Client not connected")
+			return
+		}
+
+		x.canSendRequest = true
+
+		for {
+			select {
+			case <-grace.Done():
 				return
-			}
 
-			x.conn = mkConn(conn)
-			x.isConnected = true
-
-			defer func() {
-				x.isConnected = false
-				x.conn = Conn{}
-			}()
-
-			if err = x.handshake(); err != nil {
-				errChan <- err
-				return
-			}
-
-			x.canSendRequest = true
-
-			defer func() {
-				x.canSendRequest = false
-			}()
-
-			errChan <- nil
-
-			for {
-				select {
-				case <-grace.Done():
+			case in := <-gokit.IO.ReadLine(x.conn.conn):
+				if in.Error != nil {
 					return
-
-				case in := <-gokit.IO.ReadLine(x.conn.conn):
-					if in.Error != nil {
-						return
-					}
-
-					go x.parseInput(in.Data)
 				}
+
+				go x.parseInput(in.Data)
 			}
-		})
-	}()
+		}
+	})
 
 	return
 }
