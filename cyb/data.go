@@ -2,8 +2,12 @@ package cyb
 
 import "cyberpull.com/gokit"
 
+type OutputData interface {
+	GetCode() int
+	Bind(v any) (err error)
+}
+
 type ChannelData struct {
-	UUID    string `json:"uuid"`
 	Method  string `json:"method"`
 	Channel string `json:"channel"`
 }
@@ -35,10 +39,6 @@ func (x *Data) SetContent(v any) (err error) {
 }
 
 func (x Data) Bind(v any) (err error) {
-	if x.Content == nil {
-		return
-	}
-
 	return parseJson(x.Content, v)
 }
 

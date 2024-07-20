@@ -53,5 +53,15 @@ func addRoutes() cyb.RequestRouterCallback {
 
 			return ctx.Data("Struct Update Successful")
 		})
+
+		router.Set("GET", "/test/struct/request", func(ctx *cyb.Context) cyb.Output {
+			var data DemoRequest
+
+			if err := ctx.Bind(&data); err != nil {
+				return ctx.Error(err)
+			}
+
+			return ctx.Data("Success!")
+		})
 	}
 }

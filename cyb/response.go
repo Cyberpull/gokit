@@ -3,6 +3,7 @@ package cyb
 type Response struct {
 	Data
 	ChannelData
+	UUID    string `json:"uuid"`
 	Request Request
 }
 

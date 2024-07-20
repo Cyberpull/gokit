@@ -9,10 +9,18 @@ func parseJson(data []byte, v any) (err error) {
 		}
 	}()
 
+	if data == nil {
+		return
+	}
+
 	return json.Unmarshal(data, v)
 }
 
 func toJson(v any) (b []byte, err error) {
+	if v == nil {
+		return
+	}
+
 	if err = validate(v); err != nil {
 		return
 	}

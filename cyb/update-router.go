@@ -8,7 +8,7 @@ import (
 	"cyberpull.com/gokit"
 )
 
-type UpdateHandler func(data Data)
+type UpdateHandler func(data OutputData)
 
 type UpdateRouter interface {
 	On(method, channel string, handler UpdateHandler)

@@ -18,31 +18,11 @@ type Context struct {
 }
 
 func (x *Context) Update(v any, code ...int) (err error) {
-	data := mkData(v, code...)
-
-	update := &Update{
-		Code:        data.Code,
-		Content:     data.Content,
-		ChannelData: x.req.ChannelData,
-	}
-
-	err = x.in.Update(update)
-
-	return
+	return x.in.Update(x.req.Method, x.req.Channel, v, code...)
 }
 
 func (x *Context) UpdateAll(v any, code ...int) (err error) {
-	data := mkData(v, code...)
-
-	update := &Update{
-		Code:        data.Code,
-		Content:     data.Content,
-		ChannelData: x.req.ChannelData,
-	}
-
-	err = x.in.UpdateAll(update)
-
-	return
+	return x.in.UpdateAll(x.req.Method, x.req.Channel, v, code...)
 }
 
 func (x *Context) Data(v any, code ...int) Output {
@@ -52,5 +32,10 @@ func (x *Context) Data(v any, code ...int) Output {
 func (x *Context) Error(v any, code ...int) Output {
 	err := newError(v, code...)
 	err.ChannelData = x.req.ChannelData
+	err.UUID = x.req.UUID
 	return err
+}
+
+func (x Context) Bind(v any) (err error) {
+	return x.req.Bind(v)
 }

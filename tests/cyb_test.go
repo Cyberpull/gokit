@@ -50,7 +50,7 @@ func (x *CYBTestSuite) TestRequest() {
 func (x *CYBTestSuite) TestUpdate() {
 	updateChan := make(chan gokit.IOData[string], 1)
 
-	x.client.On("GET", "/test/update", func(data cyb.Data) {
+	x.client.On("GET", "/test/update", func(data cyb.OutputData) {
 		var update gokit.IOData[string]
 
 		update.Error = data.Bind(&update.Data)
@@ -85,7 +85,7 @@ func (x *CYBTestSuite) TestStructResponse() {
 func (x *CYBTestSuite) TestStructUpdate() {
 	updateChan := make(chan gokit.IOData[DemoResponse], 1)
 
-	x.client.On("GET", "/test/struct/update", func(data cyb.Data) {
+	x.client.On("GET", "/test/struct/update", func(data cyb.OutputData) {
 		var update gokit.IOData[DemoResponse]
 
 		update.Error = data.Bind(&update.Data)
@@ -104,6 +104,16 @@ func (x *CYBTestSuite) TestStructUpdate() {
 	assert.IsType(x.T(), DemoResponse{}, data)
 	assert.Equal(x.T(), "Christian", data.Name)
 	assert.Equal(x.T(), "demo@example.com", data.Email)
+}
+
+func (x *CYBTestSuite) TestStructRequest() {
+	resp, err := cyb.MakeRequest[string](&x.client, "GET", "/test/struct/request", DemoRequest{
+		Name:  "Christian",
+		Email: "demo@example.com",
+	})
+
+	require.NoError(x.T(), err)
+	assert.Equal(x.T(), "Success!", resp)
 }
 
 // ===============================

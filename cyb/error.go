@@ -7,6 +7,7 @@ import (
 
 type Error struct {
 	ChannelData
+	UUID    string `json:"uuid"`
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }

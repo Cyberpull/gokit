@@ -10,8 +10,6 @@ import (
 	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/errors"
 	"cyberpull.com/gokit/graceful"
-
-	"github.com/google/uuid"
 )
 
 type UpdateRouterCallback func(router UpdateRouter)
@@ -60,13 +58,13 @@ func (x *Client) Request(method, channel string, data any) (value Data, err erro
 		return
 	}
 
-	req := Request{
-		Content: data,
-		ChannelData: ChannelData{
-			UUID:    gokit.Join("::", x.opts.UUID, uuid.NewString()),
-			Method:  method,
-			Channel: channel,
-		},
+	req, err := mkRequest(x, data, ChannelData{
+		Method:  method,
+		Channel: channel,
+	})
+
+	if err != nil {
+		return
 	}
 
 	rawData, err := toBytes(&req)

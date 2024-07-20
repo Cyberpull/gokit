@@ -13,7 +13,7 @@ import (
 )
 
 type InboundConnection interface {
-	Update(update *Update) (err error)
+	Update(method, channel string, v any, code ...int) (err error)
 }
 
 type Inbound struct {
@@ -67,7 +67,18 @@ func (x *Inbound) Run() {
 	})
 }
 
-func (x *Inbound) Update(update *Update) (err error) {
+func (x *Inbound) Update(method, channel string, v any, code ...int) (err error) {
+	data := mkData(v, code...)
+
+	update := &Update{
+		Code:    data.Code,
+		Content: data.Content,
+		ChannelData: ChannelData{
+			Method:  method,
+			Channel: channel,
+		},
+	}
+
 	value, err := toBytes(update)
 
 	if err != nil {
@@ -79,7 +90,18 @@ func (x *Inbound) Update(update *Update) (err error) {
 	return
 }
 
-func (x *Inbound) UpdateAll(update *Update) (err error) {
+func (x *Inbound) UpdateAll(method, channel string, v any, code ...int) (err error) {
+	data := mkData(v, code...)
+
+	update := &Update{
+		Code:    data.Code,
+		Content: data.Content,
+		ChannelData: ChannelData{
+			Method:  method,
+			Channel: channel,
+		},
+	}
+
 	value, err := toBytes(update)
 
 	if err != nil {
