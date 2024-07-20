@@ -8,6 +8,18 @@ import (
 	"sync"
 )
 
+type Connection interface {
+	ReadBytes(delim byte) (b []byte, err error)
+	ReadLine() (b []byte, err error)
+	ReadString(delim byte) (s string, err error)
+	ReadStringLine() (s string, err error)
+
+	Write(p []byte) (n int, err error)
+	WriteLine(p []byte) (n int, err error)
+	WriteString(s string) (n int, err error)
+	WriteStringLine(s string) (n int, err error)
+}
+
 type Conn struct {
 	wm     sync.Mutex
 	rm     sync.Mutex
@@ -21,26 +33,6 @@ func (x *Conn) Read(p []byte) (n int, err error) {
 	defer x.rm.Unlock()
 
 	return x.conn.Read(p)
-}
-
-func (x *Conn) Write(p []byte) (n int, err error) {
-	x.wm.Lock()
-
-	defer x.wm.Unlock()
-
-	return x.conn.Write(p)
-}
-
-func (x *Conn) WriteLine(p []byte) (n int, err error) {
-	return x.Write(append(p, '\n'))
-}
-
-func (x *Conn) WriteString(s string) (n int, err error) {
-	return x.Write([]byte(s))
-}
-
-func (x *Conn) WriteStringLine(s string) (n int, err error) {
-	return x.WriteLine([]byte(s))
 }
 
 func (x *Conn) ReadBytes(delim byte) (b []byte, err error) {
@@ -69,6 +61,26 @@ func (x *Conn) ReadString(delim byte) (s string, err error) {
 
 func (x *Conn) ReadStringLine() (s string, err error) {
 	return x.ReadString('\n')
+}
+
+func (x *Conn) Write(p []byte) (n int, err error) {
+	x.wm.Lock()
+
+	defer x.wm.Unlock()
+
+	return x.conn.Write(p)
+}
+
+func (x *Conn) WriteLine(p []byte) (n int, err error) {
+	return x.Write(append(p, '\n'))
+}
+
+func (x *Conn) WriteString(s string) (n int, err error) {
+	return x.Write([]byte(s))
+}
+
+func (x *Conn) WriteStringLine(s string) (n int, err error) {
+	return x.WriteLine([]byte(s))
 }
 
 func (x *Conn) Close() error {

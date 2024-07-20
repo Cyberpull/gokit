@@ -9,17 +9,29 @@ import (
 	"cyberpull.com/gokit/graceful"
 )
 
+type BootCallback func() (err error)
+type AuthCallback func(conn Connection) (err error)
 type RequestRouterCallback func(router RequestRouter)
-type ClientInitCallback func(i *Inbound) (err error)
+type ClientInitCallback func(i InboundConnection) (err error)
 type InboundPredicate func(i *Inbound) (err error)
 
 type Server struct {
-	opts       *Options
-	listener   net.Listener
-	mutex      sync.Mutex
-	mapper     map[string]*Inbound
-	clientInit []ClientInitCallback
-	router     ServerRequestRouter
+	opts                *Options
+	listener            net.Listener
+	mutex               sync.Mutex
+	mapper              map[string]*Inbound
+	clientInitCallbacks []ClientInitCallback
+	bootCallbacks       []BootCallback
+	authCallbacks       []AuthCallback
+	router              ServerRequestRouter
+}
+
+func (x *Server) Boot(callbacks ...BootCallback) {
+	x.bootCallbacks = callbacks
+}
+
+func (x *Server) Auth(callbacks ...AuthCallback) {
+	x.authCallbacks = callbacks
 }
 
 func (x *Server) Routes(callbacks ...RequestRouterCallback) {
@@ -29,7 +41,7 @@ func (x *Server) Routes(callbacks ...RequestRouterCallback) {
 }
 
 func (x *Server) OnClientInit(callbacks ...ClientInitCallback) {
-	x.clientInit = callbacks
+	x.clientInitCallbacks = callbacks
 }
 
 func (x *Server) Stop() (err error) {
@@ -83,6 +95,12 @@ func (x *Server) Connect(opts *Options) (errChan chan error) {
 			return
 		}
 
+		err = x.execBoot()
+
+		if err != nil {
+			return
+		}
+
 		x.opts.freeupAddress()
 
 		x.listener, err = net.Listen(opts.network(), opts.address())
@@ -133,6 +151,18 @@ func (x *Server) Run() (err error) {
 	return
 }
 
+func (x *Server) execBoot() (err error) {
+	for _, callback := range x.bootCallbacks {
+		err = callback()
+
+		if err != nil {
+			break
+		}
+	}
+
+	return
+}
+
 func (x *Server) add(i *Inbound) {
 	x.mutex.Lock()
 
@@ -150,6 +180,20 @@ func (x *Server) remove(i *Inbound) {
 
 	if i.UUID != "" {
 		delete(d(x).mapper, i.UUID)
+	}
+}
+
+func (x *Server) forEach(callback InboundPredicate) {
+	x.mutex.Lock()
+
+	defer x.mutex.Unlock()
+
+	for _, inbound := range x.mapper {
+		err := callback(inbound)
+
+		if err != nil {
+			break
+		}
 	}
 }
 

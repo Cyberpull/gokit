@@ -1,7 +1,6 @@
 package cyb
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"strings"
@@ -12,6 +11,10 @@ import (
 
 	"github.com/google/uuid"
 )
+
+type InboundConnection interface {
+	Update(update *Update) (err error)
+}
 
 type Inbound struct {
 	Info
@@ -29,6 +32,12 @@ func (x *Inbound) Run() {
 			return
 		}
 
+		err = x.execAuth()
+
+		if err != nil {
+			return
+		}
+
 		x.server.add(x)
 
 		defer func() {
@@ -36,7 +45,7 @@ func (x *Inbound) Run() {
 		}()
 
 		// Run On Client Init
-		err = x.onClientInit()
+		err = x.execClientInit()
 
 		if err != nil {
 			return
@@ -77,11 +86,16 @@ func (x *Inbound) UpdateAll(update *Update) (err error) {
 		return
 	}
 
-	go func() {
-		for _, in := range x.server.mapper {
-			in.conn.WriteLine(value)
-		}
-	}()
+	go x.server.forEach(func(i *Inbound) (err error) {
+		i.conn.WriteLine(value)
+		return
+	})
+
+	// go func() {
+	// 	for _, in := range x.server.mapper {
+	// 		in.conn.WriteLine(value)
+	// 	}
+	// }()
 
 	return
 }
@@ -225,39 +239,8 @@ func (x *Inbound) handshakeProcessUUID() (err error) {
 	return
 }
 
-func (x *Inbound) onClientInit() (err error) {
-	for _, callback := range x.server.clientInit {
-		err = callback(x)
-
-		if err != nil {
-			break
-		}
-	}
-
-	return
-}
-
 func (x *Inbound) processRequest(b []byte) (err error) {
 	graceful.Run(func(grace graceful.Grace) {
-		prefix := []byte("OK::")
-
-		if bytes.HasPrefix(b, prefix) {
-			log.Printf("%s\n", b)
-			updUuid := string(bytes.TrimPrefix(b, prefix))
-
-			if updUuid == "" {
-				return
-			}
-
-			if respChan, ok := x.updQueue[updUuid]; ok {
-				respChan <- "OK"
-			}
-
-			delete(x.updQueue, updUuid)
-
-			return
-		}
-
 		var req Request
 
 		if err = parse(&req, b); err != nil {
@@ -324,6 +307,30 @@ func (x *Inbound) processRequest(b []byte) (err error) {
 			err = errors.New("Unknown response")
 		}
 	})
+
+	return
+}
+
+func (x *Inbound) execAuth() (err error) {
+	for _, callback := range x.server.authCallbacks {
+		err = callback(x.conn)
+
+		if err != nil {
+			break
+		}
+	}
+
+	return
+}
+
+func (x *Inbound) execClientInit() (err error) {
+	for _, callback := range x.server.clientInitCallbacks {
+		err = callback(x)
+
+		if err != nil {
+			break
+		}
+	}
 
 	return
 }

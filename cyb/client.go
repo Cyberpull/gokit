@@ -23,8 +23,25 @@ type Client struct {
 	mutex          sync.Mutex
 	router         ClientUpdateRouter
 	queue          map[string]chan parsable
+	bootCallbacks  []BootCallback
+	authCallbacks  []AuthCallback
+	requestTimeout int
 	canSendRequest bool
 	isConnecting   bool
+}
+
+func (x *Client) Boot(callbacks ...BootCallback) {
+	x.bootCallbacks = callbacks
+}
+
+func (x *Client) Auth(callbacks ...AuthCallback) {
+	x.authCallbacks = callbacks
+}
+
+// Set Timeout for requests (in seconds).
+// Defaults to 30 seconds
+func (x *Client) SetRequestTimeout(timeout int) {
+	x.requestTimeout = timeout
 }
 
 func (x *Client) Updates(callbacks ...UpdateRouterCallback) {
@@ -102,12 +119,10 @@ func (x *Client) getResponse(req *Request) (value chan gokit.IOData[Data]) {
 		var resp gokit.IOData[Data]
 
 		respChan := make(chan parsable, 1)
-
 		x.addResponseChannel(req.UUID, respChan)
 
-		// d(x).queue[req.UUID] = respChan
-
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*30)
+		timeout := time.Duration(d(x).requestTimeout)
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*timeout)
 
 		defer func() {
 			value <- resp
@@ -175,6 +190,9 @@ func (x *Client) Stop() (err error) {
 		x.conn = nil
 	}
 
+	x.opts = nil
+	x.srvInfo = Info{}
+
 	x.canSendRequest = false
 	x.isConnecting = false
 
@@ -218,16 +236,27 @@ func (x *Client) Connect(opts *Options) (errChan chan error) {
 			return
 		}
 
+		err = x.execBoot()
+
+		if err != nil {
+			return
+		}
+
 		conn, err := net.Dial(x.opts.network(), x.opts.address())
 
 		if err != nil {
-			errChan <- err
 			return
 		}
 
 		x.conn = newConn(conn)
 
 		err = x.handshake()
+
+		if err != nil {
+			return
+		}
+
+		err = x.execAuth()
 	})
 
 	return
@@ -448,8 +477,36 @@ func (x *Client) processResponse(b []byte) (err error) {
 	return
 }
 
+func (x *Client) execBoot() (err error) {
+	for _, callback := range x.bootCallbacks {
+		err = callback()
+
+		if err != nil {
+			break
+		}
+	}
+
+	return
+}
+
+func (x *Client) execAuth() (err error) {
+	for _, callback := range x.authCallbacks {
+		err = callback(x.conn)
+
+		if err != nil {
+			break
+		}
+	}
+
+	return
+}
+
 func (x *Client) initialize() {
 	if x.queue == nil {
 		x.queue = make(map[string]chan parsable)
+	}
+
+	if x.requestTimeout == 0 {
+		x.requestTimeout = 30
 	}
 }

@@ -12,6 +12,8 @@ func startCybClient(client *cyb.Client, opts cyb.Options) (err error) {
 		Description: "CYB Demo Client",
 	}
 
+	client.SetRequestTimeout(10)
+
 	err = <-client.Connect(&opts)
 
 	if err != nil {

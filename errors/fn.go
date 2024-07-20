@@ -18,10 +18,14 @@ func errorCode(code ...int) int {
 }
 
 func New(message string, code ...int) (err *Error) {
-	err = &Error{
+	return &Error{
 		code:    errorCode(code...),
 		message: message,
 	}
+}
+
+func WithStack(message string, code ...int) (err *Error) {
+	err = New(message, code...)
 
 	defer recover()
 
