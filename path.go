@@ -1,28 +1,53 @@
 package gokit
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 type PathFn func() (path string, err error)
 
-func Path(paths ...any) string {
-	delim := string([]rune{os.PathSeparator})
-	return Join(delim, paths...)
+type xPath struct {
+	//
 }
 
-func PathFromExecutable(paths ...any) (file string, err error) {
-	return getPath(
-		getExecPathFromArgs(paths...),
-		getExecPathFromCaller(0, paths...),
-		getExecPathFromCaller(1, paths...),
-		getExecPathFromSource(paths...),
+func (x xPath) Join(paths ...any) string {
+	delim := string([]rune{os.PathSeparator})
+
+	var buff bytes.Buffer
+
+	for _, path := range paths {
+		data := fmt.Sprint(path)
+		data = strings.TrimSpace(data)
+
+		if data == "" {
+			continue
+		}
+
+		if buff.Len() > 0 {
+			buff.WriteString(delim)
+		}
+
+		buff.WriteString(data)
+	}
+
+	return buff.String()
+}
+
+func (x xPath) FromExecutable(paths ...any) (file string, err error) {
+	return x.get(
+		x.getExecPathFromArgs(paths...),
+		x.getExecPathFromCaller(0, paths...),
+		x.getExecPathFromCaller(1, paths...),
+		x.getExecPathFromSource(paths...),
 	)
 }
 
-func IsDir(file string) bool {
+func (x xPath) IsDir(file string) bool {
 	info, err := os.Stat(file)
 
 	if os.IsNotExist(err) {
@@ -32,7 +57,7 @@ func IsDir(file string) bool {
 	return info.IsDir()
 }
 
-func IsFile(file string) bool {
+func (x xPath) IsFile(file string) bool {
 	info, err := os.Stat(file)
 
 	if os.IsNotExist(err) {
@@ -42,7 +67,7 @@ func IsFile(file string) bool {
 	return !info.IsDir()
 }
 
-func getPath(fns ...PathFn) (path string, err error) {
+func (x xPath) get(fns ...PathFn) (path string, err error) {
 	for _, fn := range fns {
 		path, err = fn()
 
@@ -50,7 +75,7 @@ func getPath(fns ...PathFn) (path string, err error) {
 			continue
 		}
 
-		if IsFile(path) {
+		if x.IsFile(path) {
 			break
 		}
 	}
@@ -58,38 +83,42 @@ func getPath(fns ...PathFn) (path string, err error) {
 	return
 }
 
-func getExecPathFromCaller(skip int, paths ...any) PathFn {
+func (x xPath) getExecPathFromCaller(skip int, paths ...any) PathFn {
 	return func() (path string, err error) {
 		_, file, _, _ := runtime.Caller(skip)
-		return getAbsolutePathFromFile(file, paths...)
+		return x.getAbsolutePathFromFile(file, paths...)
 	}
 }
 
-func getExecPathFromArgs(paths ...any) PathFn {
+func (x xPath) getExecPathFromArgs(paths ...any) PathFn {
 	return func() (path string, err error) {
-		return getAbsolutePathFromFile(os.Args[0], paths...)
+		return x.getAbsolutePathFromFile(os.Args[0], paths...)
 	}
 }
 
-func getExecPathFromSource(paths ...any) PathFn {
+func (x xPath) getExecPathFromSource(paths ...any) PathFn {
 	return func() (path string, err error) {
-		return getAbsolutePathFromDir("./", paths...)
+		return x.getAbsolutePathFromDir("./", paths...)
 	}
 }
 
-func getAbsolutePathFromFile(fromFile string, paths ...any) (path string, err error) {
+func (x xPath) getAbsolutePathFromFile(fromFile string, paths ...any) (path string, err error) {
 	dir := filepath.Dir(fromFile)
-	return getAbsolutePathFromDir(dir, paths...)
+	return x.getAbsolutePathFromDir(dir, paths...)
 }
 
-func getAbsolutePathFromDir(dir string, paths ...any) (path string, err error) {
+func (x xPath) getAbsolutePathFromDir(dir string, paths ...any) (path string, err error) {
 	if dir, err = filepath.Abs(dir); err != nil {
 		return
 	}
 
 	allPaths := append([]any{dir}, paths...)
 
-	path = Path(allPaths...)
+	path = x.Join(allPaths...)
 
 	return
 }
+
+// ================================
+
+var Path xPath

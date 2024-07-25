@@ -1,8 +1,6 @@
 package tests
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	"cyberpull.com/gokit"
@@ -21,7 +19,7 @@ type CYBTestSuite struct {
 }
 
 func (x *CYBTestSuite) SetupSuite() {
-	socket := fmt.Sprintf("unix:%s/test.cyb.sock", os.TempDir())
+	socket := "unix:~/run/test/cyb.sock"
 
 	// Start GoKit CYB Server
 	require.NoError(x.T(), startCybServer(&x.server, socket))

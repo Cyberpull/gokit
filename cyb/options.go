@@ -3,15 +3,19 @@ package cyb
 import (
 	"bytes"
 	"os"
+	"path/filepath"
+	"strings"
 
+	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/errors"
 )
 
 type Options struct {
 	Info
-	Socket  string
-	network string
-	address string
+	Socket         string
+	SocketFileMode os.FileMode
+	network        string
+	address        string
 }
 
 func (x *Options) parse() (err error) {
@@ -26,7 +30,7 @@ func (x *Options) parse() (err error) {
 
 	for _, char := range x.Socket {
 		if char == ':' && x.network == "" {
-			x.network = buff.String()
+			x.network = strings.TrimSpace(buff.String())
 			buff.Reset()
 
 			if x.network == "" {
@@ -34,20 +38,43 @@ func (x *Options) parse() (err error) {
 				return
 			}
 
+			x.network = strings.ToLower(x.network)
+
 			continue
 		}
 
 		buff.WriteRune(char)
 	}
 
-	if buff.Len() == 0 {
+	x.address = strings.TrimSpace(buff.String())
+
+	if x.address == "" {
 		err = errors.New("Socket address empty")
 		return
 	}
 
-	x.address = buff.String()
+	x.address = gokit.Path.Expand(x.address)
+
+	switch x.network {
+	case "unix":
+		dir := filepath.Dir(x.address)
+
+		_, err = os.Stat(dir)
+
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(dir, x.perm())
+		}
+	}
 
 	return
+}
+
+func (x Options) perm() os.FileMode {
+	if x.SocketFileMode != 0 {
+		return x.SocketFileMode
+	}
+
+	return 0775
 }
 
 func (x Options) freeupAddress() {

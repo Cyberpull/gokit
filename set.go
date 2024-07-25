@@ -21,6 +21,8 @@ func Join(delim string, entries ...any) string {
 	for _, entry := range entries {
 		data := fmt.Sprint(entry)
 		data = strings.TrimSpace(data)
+		data = strings.TrimPrefix(data, delim)
+		data = strings.TrimSuffix(data, delim)
 
 		if data == "" {
 			continue
