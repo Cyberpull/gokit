@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -20,16 +21,13 @@ type CYBTestSuite struct {
 }
 
 func (x *CYBTestSuite) SetupSuite() {
-	opts := cyb.Options{
-		Network:    "unix",
-		SocketPath: os.TempDir() + "/test.cyb.sock",
-	}
+	socket := fmt.Sprintf("unix:%s/test.cyb.sock", os.TempDir())
 
 	// Start GoKit CYB Server
-	require.NoError(x.T(), startCybServer(&x.server, opts))
+	require.NoError(x.T(), startCybServer(&x.server, socket))
 
 	// Start GoKit CYB Client
-	require.NoError(x.T(), startCybClient(&x.client, opts))
+	require.NoError(x.T(), startCybClient(&x.client, socket))
 }
 
 func (x *CYBTestSuite) TearDownSuite() {

@@ -88,6 +88,10 @@ func (x *Server) Connect(opts *Options) (errChan chan error) {
 			return
 		}
 
+		if err = opts.parse(); err != nil {
+			return
+		}
+
 		x.opts = opts
 
 		if x.isListening() {
@@ -103,7 +107,7 @@ func (x *Server) Connect(opts *Options) (errChan chan error) {
 
 		x.opts.freeupAddress()
 
-		x.listener, err = net.Listen(opts.network(), opts.address())
+		x.listener, err = net.Listen(opts.network, opts.address)
 
 		if err != nil {
 			return

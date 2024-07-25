@@ -216,6 +216,10 @@ func (x *Client) Connect(opts *Options) (errChan chan error) {
 			return
 		}
 
+		if err = opts.parse(); err != nil {
+			return
+		}
+
 		x.opts = opts
 
 		if x.isConnecting {
@@ -240,7 +244,7 @@ func (x *Client) Connect(opts *Options) (errChan chan error) {
 			return
 		}
 
-		conn, err := net.Dial(x.opts.network(), x.opts.address())
+		conn, err := net.Dial(x.opts.network, x.opts.address)
 
 		if err != nil {
 			return

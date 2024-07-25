@@ -6,15 +6,18 @@ import (
 	"cyberpull.com/gokit/cyb"
 )
 
-func startCybClient(client *cyb.Client, opts cyb.Options) (err error) {
-	opts.Info = cyb.Info{
-		Name:        "Demo Client",
-		Description: "CYB Demo Client",
+func startCybClient(client *cyb.Client, socket string) (err error) {
+	opts := &cyb.Options{
+		Socket: socket,
+		Info: cyb.Info{
+			Name:        "Demo Client",
+			Description: "CYB Demo Client",
+		},
 	}
 
 	client.SetRequestTimeout(10)
 
-	err = <-client.Connect(&opts)
+	err = <-client.Connect(opts)
 
 	if err != nil {
 		return
