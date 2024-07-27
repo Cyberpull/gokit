@@ -2,7 +2,6 @@ package cyb
 
 import (
 	"context"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -10,12 +9,13 @@ import (
 	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/errors"
 	"cyberpull.com/gokit/graceful"
+	"cyberpull.com/gokit/net"
 )
 
 type UpdateRouterCallback func(router UpdateRouter)
 
 type Client struct {
-	conn           *Conn
+	conn           net.Conn
 	srvInfo        Info
 	opts           *Options
 	mutex          sync.Mutex
@@ -244,13 +244,11 @@ func (x *Client) Connect(opts *Options) (errChan chan error) {
 			return
 		}
 
-		conn, err := net.Dial(x.opts.network, x.opts.address)
+		x.conn, err = net.Dial(x.opts.network, x.opts.address)
 
 		if err != nil {
 			return
 		}
-
-		x.conn = newConn(conn)
 
 		err = x.handshake()
 

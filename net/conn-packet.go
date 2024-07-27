@@ -17,13 +17,5 @@ func (x *packetConnection) WriteTo(b []byte, addr net.Addr) (int, error) {
 }
 
 func (x *packetConnection) real() net.PacketConn {
-	return x.connection.conn.(net.PacketConn)
-}
-
-// ==================================
-
-func newPacketConn(conn net.Conn) *packetConnection {
-	value := &packetConnection{}
-	initConn(&value.connection, conn)
-	return value
+	return x.conn.(net.PacketConn)
 }

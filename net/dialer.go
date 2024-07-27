@@ -1,11 +1,15 @@
 package net
 
 import (
+	"crypto/tls"
 	"net"
 	"time"
 )
 
 type Dialer net.Dialer
+type TLSDialer tls.Dialer
+
+type Addr net.Addr
 type IPAddr net.IPAddr
 type TCPAddr net.TCPAddr
 type UDPAddr net.UDPAddr
@@ -35,12 +39,38 @@ func DialIP(network string, laddr *IPAddr, raddr *IPAddr) (conn *IPConn, err err
 	return
 }
 
-func DialTCP(network string, laddr *TCPAddr, raddr *TCPAddr) (conn *net.TCPConn, err error) {
+func DialTCP(network string, laddr *TCPAddr, raddr *TCPAddr) (conn *TCPConn, err error) {
 	c, err := net.DialTCP(network, (*net.TCPAddr)(laddr), (*net.TCPAddr)(raddr))
 
 	if err != nil {
 		return
 	}
+
+	conn = newTCPConn(c)
+
+	return
+}
+
+func DialTLS(network string, addr string, config *TLSConfig) (conn *TLSConn, err error) {
+	c, err := tls.Dial(network, addr, (*tls.Config)(config))
+
+	if err != nil {
+		return
+	}
+
+	conn = newTLSConn(c)
+
+	return
+}
+
+func DialTLSWithDialer(dialer *Dialer, network string, addr string, config *TLSConfig) (conn *TLSConn, err error) {
+	c, err := tls.DialWithDialer((*net.Dialer)(dialer), network, addr, (*tls.Config)(config))
+
+	if err != nil {
+		return
+	}
+
+	conn = newTLSConn(c)
 
 	return
 }
@@ -57,22 +87,26 @@ func DialTimeout(network string, address string, timeout time.Duration) (conn Co
 	return
 }
 
-func DialUDP(network string, laddr *net.UDPAddr, raddr *net.UDPAddr) (*net.UDPConn, error) {
-	c, err := net.DialUDP()
+func DialUDP(network string, laddr *UDPAddr, raddr *UDPAddr) (conn *UDPConn, err error) {
+	c, err := net.DialUDP(network, (*net.UDPAddr)(laddr), (*net.UDPAddr)(raddr))
 
 	if err != nil {
 		return
 	}
+
+	conn = newUDPConn(c)
 
 	return
 }
 
-func DialUnix(network string, laddr *net.UnixAddr, raddr *net.UnixAddr) (*net.UnixConn, error) {
-	c, err := net.DialUnix()
+func DialUnix(network string, laddr *UnixAddr, raddr *UnixAddr) (conn *UnixConn, err error) {
+	c, err := net.DialUnix(network, (*net.UnixAddr)(laddr), (*net.UnixAddr)(raddr))
 
 	if err != nil {
 		return
 	}
+
+	conn = newUnixConn(c)
 
 	return
 }

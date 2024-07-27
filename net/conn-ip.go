@@ -43,7 +43,7 @@ func (x *IPConn) WriteToIP(b []byte, addr *net.IPAddr) (int, error) {
 }
 
 func (x *IPConn) real() *net.IPConn {
-	return x.packetConnection.conn.(*net.IPConn)
+	return x.conn.(*net.IPConn)
 }
 
 // ===========================

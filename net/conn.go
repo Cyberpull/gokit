@@ -169,10 +169,6 @@ func (x *connection) SetWriteDeadline(t time.Time) error {
 	return x.conn.SetWriteDeadline(t)
 }
 
-func (x *connection) packet() net.PacketConn {
-	return x.conn.(net.PacketConn)
-}
-
 // ==================================
 
 func newConn(conn net.Conn) Conn {

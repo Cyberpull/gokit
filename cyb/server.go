@@ -1,12 +1,11 @@
 package cyb
 
 import (
-	"net"
 	"sync"
 
-	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/errors"
 	"cyberpull.com/gokit/graceful"
+	"cyberpull.com/gokit/net"
 )
 
 type BootCallback func() (err error)
@@ -136,13 +135,13 @@ func (x *Server) Run() (err error) {
 			case <-grace.Done():
 				return
 
-			case resp := <-gokit.Net.Accept(x.listener):
+			case resp := <-x.listener.AcceptChan():
 				if resp.Error != nil {
 					return
 				}
 
 				inbound := &Inbound{
-					conn:     newConn(resp.Data),
+					conn:     resp.Data,
 					updQueue: make(map[string]chan string),
 					server:   x,
 				}

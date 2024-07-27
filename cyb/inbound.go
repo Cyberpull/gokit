@@ -8,6 +8,7 @@ import (
 	"cyberpull.com/gokit"
 	"cyberpull.com/gokit/errors"
 	"cyberpull.com/gokit/graceful"
+	"cyberpull.com/gokit/net"
 
 	"github.com/google/uuid"
 )
@@ -18,7 +19,7 @@ type InboundConnection interface {
 
 type Inbound struct {
 	Info
-	conn     *Conn
+	conn     net.Conn
 	server   *Server
 	updQueue map[string]chan string
 }
