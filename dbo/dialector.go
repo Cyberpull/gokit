@@ -3,7 +3,7 @@ package dbo
 import (
 	"fmt"
 
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"

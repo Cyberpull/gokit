@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"cyberpull.com/gokit"
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit"
+	"github.com/Cyberpull/gokit/errors"
 )
 
 type Options struct {

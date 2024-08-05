@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"cyberpull.com/gokit"
-	"cyberpull.com/gokit/errors"
-	"cyberpull.com/gokit/graceful"
-	"cyberpull.com/gokit/net"
+	"github.com/Cyberpull/gokit"
+	"github.com/Cyberpull/gokit/errors"
+	"github.com/Cyberpull/gokit/graceful"
+	"github.com/Cyberpull/gokit/net"
 )
 
 type UpdateRouterCallback func(router UpdateRouter)

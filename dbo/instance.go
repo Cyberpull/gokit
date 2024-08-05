@@ -1,7 +1,7 @@
 package dbo
 
 import (
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 
 	"gorm.io/gorm"
 )

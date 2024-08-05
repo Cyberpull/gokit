@@ -1,6 +1,6 @@
 package cyb
 
-import "cyberpull.com/gokit"
+import "github.com/Cyberpull/gokit"
 
 type xValidator struct {
 	engine gokit.Validator

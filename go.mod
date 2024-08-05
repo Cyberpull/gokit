@@ -1,4 +1,4 @@
-module cyberpull.com/gokit
+module github.com/Cyberpull/gokit
 
 go 1.22.5
 

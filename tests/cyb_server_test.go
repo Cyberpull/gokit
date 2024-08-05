@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"cyberpull.com/gokit/cyb"
+	"github.com/Cyberpull/gokit/cyb"
 )
 
 func startCybServer(server *cyb.Server, socket string) (err error) {

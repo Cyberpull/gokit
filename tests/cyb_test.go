@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"cyberpull.com/gokit"
-	"cyberpull.com/gokit/cyb"
+	"github.com/Cyberpull/gokit"
+	"github.com/Cyberpull/gokit/cyb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

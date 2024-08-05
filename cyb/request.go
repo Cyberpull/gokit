@@ -1,7 +1,7 @@
 package cyb
 
 import (
-	"cyberpull.com/gokit"
+	"github.com/Cyberpull/gokit"
 
 	"github.com/google/uuid"
 )

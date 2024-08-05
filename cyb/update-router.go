@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"cyberpull.com/gokit"
+	"github.com/Cyberpull/gokit"
 )
 
 type UpdateHandler func(data OutputData)

@@ -3,7 +3,7 @@ package cyb
 import (
 	"reflect"
 
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 )
 
 func MakeRequest[T any](client *Client, method, channel string, data any) (value T, err error) {

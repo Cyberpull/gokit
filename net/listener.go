@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"net"
 
-	"cyberpull.com/gokit"
+	"github.com/Cyberpull/gokit"
 )
 
 type Listener interface {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	"cyberpull.com/gokit"
+	"github.com/Cyberpull/gokit"
 )
 
 type RequestHander func(ctx *Context) Output

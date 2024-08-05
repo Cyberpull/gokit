@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 
 	"golang.org/x/exp/constraints"
 )

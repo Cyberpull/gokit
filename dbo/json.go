@@ -4,7 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 )
 
 type Json[T any] struct {

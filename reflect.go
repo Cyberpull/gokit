@@ -3,7 +3,7 @@ package gokit
 import (
 	"reflect"
 
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 )
 
 func Write(input any, output any) (err error) {

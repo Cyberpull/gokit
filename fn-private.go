@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 )
 
 func one[T any](def T, attr []T) T {

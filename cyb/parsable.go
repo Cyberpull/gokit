@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"cyberpull.com/gokit/errors"
+	"github.com/Cyberpull/gokit/errors"
 )
 
 type parsable interface {

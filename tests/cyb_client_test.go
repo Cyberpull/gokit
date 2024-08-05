@@ -3,7 +3,7 @@ package tests
 import (
 	"time"
 
-	"cyberpull.com/gokit/cyb"
+	"github.com/Cyberpull/gokit/cyb"
 )
 
 func startCybClient(client *cyb.Client, socket string) (err error) {
