@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"io"
+	"io/fs"
 	"os"
 
 	"github.com/Cyberpull/gokit"
@@ -23,6 +24,20 @@ func ReadFile[T any](name string) (value T, err error) {
 	var file *os.File
 
 	if file, err = os.Open(name); err != nil {
+		return
+	}
+
+	defer file.Close()
+
+	value, err = Read[T](file)
+
+	return
+}
+
+func ReadFileFS[T any](name string, dir fs.FS) (value T, err error) {
+	var file fs.File
+
+	if file, err = dir.Open(name); err != nil {
 		return
 	}
 
