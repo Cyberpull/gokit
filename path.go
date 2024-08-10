@@ -100,6 +100,7 @@ func (x xPath) getAbsolutePathFromDir(dir string, paths ...any) (path string, er
 	allPaths := append([]any{dir}, paths...)
 
 	path = x.Join(allPaths...)
+	path = x.sanitize(path)
 
 	return
 }

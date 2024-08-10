@@ -17,6 +17,16 @@ type SetConstraint interface {
 	constraints.Integer | constraints.Float | ~string
 }
 
+func In[T comparable](value T, entries ...T) bool {
+	for _, entry := range entries {
+		if value == entry {
+			return true
+		}
+	}
+
+	return false
+}
+
 func JoinFunc(delim string, entries []any, callbacks ...JoinEntryFunc) string {
 	var buff bytes.Buffer
 

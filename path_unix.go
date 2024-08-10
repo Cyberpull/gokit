@@ -29,3 +29,20 @@ func (x xPath) Expand(path string) string {
 
 	return home + os.ExpandEnv(path)
 }
+
+func (x xPath) sanitize(path string) (value string) {
+	defer func() {
+		recover()
+		value = path
+	}()
+
+	switch true {
+	case path[:1] == "/":
+		return
+
+	case !In(path[:2], "~/", "./", ".."):
+		path = "/" + path
+	}
+
+	return
+}

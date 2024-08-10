@@ -41,3 +41,7 @@ func (x xPath) Expand(path string) string {
 
 	return buff.String()
 }
+
+func (x xPath) sanitize(path string) string {
+	return path
+}
