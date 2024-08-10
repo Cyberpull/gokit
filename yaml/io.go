@@ -34,10 +34,10 @@ func ReadFile[T any](name string) (value T, err error) {
 	return
 }
 
-func ReadFileFS[T any](name string, dir fs.FS) (value T, err error) {
+func ReadFileFS[T any](name string, fsys fs.FS) (value T, err error) {
 	var file fs.File
 
-	if file, err = dir.Open(name); err != nil {
+	if file, err = fsys.Open(name); err != nil {
 		return
 	}
 

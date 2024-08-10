@@ -11,18 +11,26 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+type JoinEntryFunc func(v string) string
+
 type SetConstraint interface {
 	constraints.Integer | constraints.Float | ~string
 }
 
-func Join(delim string, entries ...any) string {
+func JoinFunc(delim string, entries []any, callbacks ...JoinEntryFunc) string {
 	var buff bytes.Buffer
 
 	for _, entry := range entries {
 		data := fmt.Sprint(entry)
 		data = strings.TrimSpace(data)
-		data = strings.TrimPrefix(data, delim)
-		data = strings.TrimSuffix(data, delim)
+
+		for _, callback := range callbacks {
+			if callback == nil {
+				continue
+			}
+
+			data = callback(data)
+		}
 
 		if data == "" {
 			continue
@@ -36,6 +44,10 @@ func Join(delim string, entries ...any) string {
 	}
 
 	return buff.String()
+}
+
+func Join(delim string, entries ...any) string {
+	return JoinFunc(delim, entries)
 }
 
 func Split[T SetConstraint](data string, delim string) (value []T, err error) {

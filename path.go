@@ -1,8 +1,6 @@
 package gokit
 
 import (
-	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,24 +16,11 @@ type xPath struct {
 func (x xPath) Join(paths ...any) string {
 	delim := string([]rune{os.PathSeparator})
 
-	var buff bytes.Buffer
-
-	for _, path := range paths {
-		data := fmt.Sprint(path)
-		data = strings.TrimSpace(data)
-
-		if data == "" {
-			continue
-		}
-
-		if buff.Len() > 0 {
-			buff.WriteString(delim)
-		}
-
-		buff.WriteString(data)
-	}
-
-	return buff.String()
+	return JoinFunc(delim, paths, func(v string) string {
+		v = strings.TrimPrefix(v, delim)
+		v = strings.TrimSuffix(v, delim)
+		return v
+	})
 }
 
 func (x xPath) FromExecutable(paths ...any) (file string, err error) {
