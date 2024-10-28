@@ -2,7 +2,7 @@ package color
 
 import "github.com/fatih/color"
 
-type Attribute color.Attribute
+type Attribute int
 
 const (
 	FgGreen   Attribute = Attribute(color.FgGreen)
