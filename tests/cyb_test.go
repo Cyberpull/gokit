@@ -19,7 +19,7 @@ type CYBTestSuite struct {
 }
 
 func (x *CYBTestSuite) SetupSuite() {
-	socket := "unix:~/run/test/cyb.sock"
+	socket := "~/run/test/cyb.sock"
 
 	// Start GoKit CYB Server
 	require.NoError(x.T(), startCybServer(&x.server, socket))
