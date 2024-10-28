@@ -34,6 +34,10 @@ func (x *Logger) Fatalln(a ...any) {
 	x.Logger.Fatalln(x.s(a...))
 }
 
+func (x *Logger) Fatalfln(format string, a ...any) {
+	x.Logger.Fatalln(x.sf(format, a...))
+}
+
 func (x *Logger) Panic(a ...any) {
 	x.Logger.Panic(x.s(a...))
 }
@@ -46,6 +50,10 @@ func (x *Logger) Panicln(a ...any) {
 	x.Logger.Panicln(x.s(a...))
 }
 
+func (x *Logger) Panicfln(format string, a ...any) {
+	x.Logger.Panicln(x.sf(format, a...))
+}
+
 func (x *Logger) Print(a ...any) {
 	x.Logger.Print(x.s(a...))
 }
@@ -56,6 +64,10 @@ func (x *Logger) Printf(format string, a ...any) {
 
 func (x *Logger) Println(a ...any) {
 	x.Logger.Println(x.s(a...))
+}
+
+func (x *Logger) Printfln(format string, a ...any) {
+	x.Logger.Println(x.sf(format, a...))
 }
 
 // ====================================

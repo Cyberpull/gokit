@@ -14,6 +14,10 @@ func Fatalln(v ...any) {
 	logger.Fatalln(v...)
 }
 
+func Fatalfln(format string, v ...any) {
+	logger.Fatalfln(format, v...)
+}
+
 func Panic(a ...any) {
 	logger.Panic(a...)
 }
@@ -26,6 +30,10 @@ func Panicln(a ...any) {
 	logger.Panicln(a...)
 }
 
+func Panicfln(format string, a ...any) {
+	logger.Panicfln(format, a...)
+}
+
 func Print(a ...any) {
 	logger.Print(a...)
 }
@@ -36,6 +44,10 @@ func Printf(format string, a ...any) {
 
 func Println(a ...any) {
 	logger.Println(a...)
+}
+
+func Printfln(format string, a ...any) {
+	logger.Printfln(format, a...)
 }
 
 // =======================
