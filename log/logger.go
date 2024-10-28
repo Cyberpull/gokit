@@ -91,11 +91,21 @@ func New(opts Options) *Logger {
 	}
 }
 
-func Copy(x *Logger, color ...color.Attribute) *Logger {
+func Copy(x *Logger, attr ...color.Attribute) *Logger {
 	result := &Logger{Logger: x.Logger}
 
-	if len(color) > 0 {
-		result.SetColor(color[0])
+	if len(attr) > 0 {
+		result.SetColor(attr[0])
+	}
+
+	return result
+}
+
+func Color(attr ...color.Attribute) *Logger {
+	result := Default()
+
+	if len(attr) > 0 {
+		result.SetColor(attr[0])
 	}
 
 	return result
