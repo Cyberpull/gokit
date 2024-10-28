@@ -13,14 +13,23 @@ type xPath struct {
 	//
 }
 
+func (x xPath) Delim() string {
+	return string([]rune{os.PathSeparator})
+}
+
 func (x xPath) Join(paths ...any) string {
-	delim := string([]rune{os.PathSeparator})
+	delim := x.Delim()
 
 	return JoinFunc(delim, paths, func(v string) string {
 		v = strings.TrimPrefix(v, delim)
 		v = strings.TrimSuffix(v, delim)
 		return v
 	})
+}
+
+func (x xPath) JoinPrefixed(paths ...any) string {
+	result := x.Join(paths...)
+	return x.Delim() + result
 }
 
 func (x xPath) FromExecutable(paths ...any) (file string, err error) {
