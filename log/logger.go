@@ -96,6 +96,14 @@ func (x *Logger) sf(format string, v ...any) string {
 
 // ====================================
 
+func setDefault(x *Logger, attr ...color.Attribute) {
+	x.Logger = log.Default()
+
+	if len(attr) > 0 {
+		x.SetColor(attr[0])
+	}
+}
+
 func New(opts Options) *Logger {
 	return &Logger{
 		Logger: log.New(opts.out, opts.prefix, opts.flag),

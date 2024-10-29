@@ -20,6 +20,12 @@ func (x *LogTestSuite) TestColor() {
 	})
 }
 
+func (x *LogTestSuite) TestRedColor() {
+	require.NotPanics(x.T(), func() {
+		log.Red.Println("Testing")
+	})
+}
+
 // ===============================
 
 func TestLog(t *testing.T) {
