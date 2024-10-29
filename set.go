@@ -27,7 +27,7 @@ func In[T comparable](value T, entries ...T) bool {
 	return false
 }
 
-func JoinFunc(delim string, entries []any, callbacks ...JoinEntryFunc) string {
+func JoinFunc[T any](delim string, entries []T, callbacks ...JoinEntryFunc) string {
 	var buff bytes.Buffer
 
 	for _, entry := range entries {
@@ -56,7 +56,7 @@ func JoinFunc(delim string, entries []any, callbacks ...JoinEntryFunc) string {
 	return buff.String()
 }
 
-func Join(delim string, entries ...any) string {
+func Join[T any](delim string, entries ...T) string {
 	return JoinFunc(delim, entries)
 }
 
