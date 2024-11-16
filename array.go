@@ -132,6 +132,14 @@ func (x *Array[T]) Len() int {
 	return len(x.entries)
 }
 
+func (x *Array[T]) Slice() []T {
+	x.mutex.Lock()
+
+	defer x.mutex.Unlock()
+
+	return d(x).entries
+}
+
 func (x *Array[T]) Clear() {
 	x.mutex.Lock()
 

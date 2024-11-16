@@ -18,6 +18,8 @@ func Connect(opts *Options) (i Instance, err error) {
 		return
 	}
 
+	db.Use(NewPlugin())
+
 	switch dbDriver(opts) {
 	case DRIVER_PGSQL:
 		err = db.Exec(`SET DEFAULT_TRANSACTION_ISOLATION TO SERIALIZABLE`).Error

@@ -3,6 +3,7 @@ name: Test GoKit
 on:
   push:
     branches: [ master, develop ]
+
   pull_request:
     branches: [ master, develop ]
 
@@ -10,8 +11,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
     environment: testing
+
+    env:
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      DB_DATABASE: gokit_test
+
     steps:
     - uses: actions/checkout@v4
+
+    - name: Start MySQL
+      run: sudo /etc/init.d/mysql start
+
+    - name: Create MySQL Database
+      run: mysql -e "CREATE DATABASE IF NOT EXISTS $DB_DATABASE;" -u $DB_USER -p$DB_PASSWORD
 
     - name: Set up Go
       uses: actions/setup-go@v5
