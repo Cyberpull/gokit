@@ -24,7 +24,7 @@ jobs:
       run: sudo /etc/init.d/mysql start
 
     - name: Create MySQL Database
-      run: mysql -e "CREATE DATABASE IF NOT EXISTS $DB_DATABASE;" -u $DB_USER -p$DB_PASSWORD
+      run: mysql -e "CREATE DATABASE IF NOT EXISTS $DB_DATABASE;" -u $DB_USERNAME -p$DB_PASSWORD
 
     - name: Set up Go
       uses: actions/setup-go@v5
