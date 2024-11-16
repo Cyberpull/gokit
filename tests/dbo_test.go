@@ -50,6 +50,7 @@ func (x *DBOTestSuite) SetupSuite() {
 	x.ins.AddMigrations(
 		&models.Person{},
 		&models.Car{},
+		&models.Movie{},
 	)
 
 	require.NoError(x.T(), x.ins.Migrate())
@@ -71,6 +72,17 @@ func (x *DBOTestSuite) SetupSuite() {
 		}).Error
 	})
 
+	x.ins.AddSeeders(func(db *gorm.DB) (err error) {
+		return db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoNothing: true,
+		}).Create([]*models.Movie{
+			{ID: 1, Name: "Jumong", IsSeries: true, OwnerID: 1},
+			{ID: 2, Name: "King The Land", IsSeries: true, OwnerID: 1},
+			{ID: 3, Name: "Avengers", OwnerID: 1},
+		}).Error
+	})
+
 	require.NoError(x.T(), x.ins.Seed())
 }
 
@@ -87,7 +99,12 @@ func (x *DBOTestSuite) TestPluginPreload() {
 	require.NoError(x.T(), result.Error)
 	require.EqualValues(x.T(), int64(1), result.RowsAffected)
 	require.EqualValues(x.T(), uint64(1), entry.ID)
+
+	// Cars
 	require.Len(x.T(), entry.Cars, 2)
+
+	// Movies
+	require.Len(x.T(), entry.Movies, 1)
 }
 
 func (x *DBOTestSuite) TestSet() {

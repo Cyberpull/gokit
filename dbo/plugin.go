@@ -3,6 +3,7 @@ package dbo
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -29,7 +30,8 @@ func (x *xPlugin) Initialize(db *gorm.DB) (err error) {
 
 func (x *xPlugin) onBeforeQuery() xPluginCallback {
 	return func(db *gorm.DB) {
-		model := db.Statement.Schema.ModelType
+		model := reflect.New(db.Statement.Schema.ModelType)
+		// model := db.Statement.Schema.ModelType
 
 		for _, field := range db.Statement.Schema.Fields {
 			tag := x.getFieldTag(field)
@@ -41,8 +43,10 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 			if tag.Preload {
 				args := make([]any, 0)
 
-				if method, ok := model.MethodByName(field.Name + "Preloader"); ok {
-					args = append(args, method.Func.Interface())
+				method := model.MethodByName(field.Name + "Preloader")
+
+				if method.IsValid() && !method.IsZero() {
+					args = append(args, method.Interface())
 				}
 
 				db = db.Preload(field.Name, args...)
