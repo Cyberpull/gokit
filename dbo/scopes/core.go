@@ -38,6 +38,19 @@ func (x *xCore) FindInSet(value any, column Column) Expression {
 	}
 }
 
+func (x *xCore) Sum(column string) Scope {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Clauses(Select{Expression: Expr{
+			SQL: "COALESCE(SUM(?), 0)",
+			Vars: []any{Column{
+				Table: CurrentTable,
+				Name:  column,
+			}},
+			WithoutParentheses: true,
+		}})
+	}
+}
+
 // func (x *xCore) IN(cond ...IN) Expression {
 // 	return
 // }

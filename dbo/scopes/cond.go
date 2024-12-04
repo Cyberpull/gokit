@@ -33,12 +33,12 @@ func (x *xCond) Where(expr ...Expression) Scope {
 
 func (x *xCond) WhereLike(field string, value any) Scope {
 	return x.Where(Expr{
-		WithoutParentheses: true,
-		SQL:                "? LIKE ?",
+		SQL: "? LIKE ?",
 		Vars: []any{
 			Column{Table: CurrentTable, Name: field},
 			Expr{SQL: "?", Vars: []any{value}},
 		},
+		WithoutParentheses: true,
 	})
 }
 

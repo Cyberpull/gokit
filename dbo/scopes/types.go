@@ -18,6 +18,8 @@ type NamedExpr = clause.NamedExpr
 
 type Expression = clause.Expression
 
+type Select = clause.Select
+
 type Column = clause.Column
 
 type Values = clause.Values
