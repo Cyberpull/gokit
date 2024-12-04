@@ -36,6 +36,8 @@ type Eq = clause.Eq
 
 type Neq = clause.Neq
 
+type Like Eq
+
 type OrderBy = clause.OrderBy
 
 type JoinType = clause.JoinType
