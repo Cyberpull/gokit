@@ -7,6 +7,24 @@ import (
 
 type xCond struct{}
 
+func (x *xCond) PrimaryKey(value any) Scope {
+	return x.Equal(PrimaryKey, value)
+}
+
+func (x *xCond) Equal(field string, value any) Scope {
+	return x.Where(Eq{
+		Column: Column{Table: CurrentTable, Name: field},
+		Value:  value,
+	})
+}
+
+func (x *xCond) NotEqual(field string, value any) Scope {
+	return x.Where(Neq{
+		Column: Column{Table: CurrentTable, Name: field},
+		Value:  value,
+	})
+}
+
 func (x *xCond) Where(expr ...Expression) Scope {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Clauses(Where{Exprs: expr})

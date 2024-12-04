@@ -34,6 +34,34 @@ type IN = clause.IN
 
 type Eq = clause.Eq
 
+type Neq = clause.Neq
+
 type OrderBy = clause.OrderBy
 
-const CurrentTable string = clause.CurrentTable
+type JoinType = clause.JoinType
+
+const (
+	Associations string = clause.Associations
+
+	CrossJoin JoinType = clause.CrossJoin
+	InnerJoin JoinType = clause.InnerJoin
+	LeftJoin  JoinType = clause.LeftJoin
+	RightJoin JoinType = clause.RightJoin
+
+	AndWithSpace string = clause.AndWithSpace
+	OrWithSpace  string = clause.OrWithSpace
+
+	CurrentTable string = clause.CurrentTable
+	PrimaryKey   string = clause.PrimaryKey
+
+	LockingOptionsNoWait     string = clause.LockingOptionsNoWait
+	LockingOptionsSkipLocked string = clause.LockingOptionsSkipLocked
+	LockingStrengthShare     string = clause.LockingStrengthShare
+	LockingStrengthUpdate    string = clause.LockingStrengthUpdate
+)
+
+var PrimaryColumn Column
+
+func init() {
+	PrimaryColumn = clause.PrimaryColumn
+}
