@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 
+	"github.com/Cyberpull/gokit/dbo/scopes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -31,8 +33,8 @@ func (x *xPlugin) Initialize(db *gorm.DB) (err error) {
 func (x *xPlugin) onBeforeQuery() xPluginCallback {
 	return func(db *gorm.DB) {
 		model := reflect.New(db.Statement.Schema.ModelType)
-		// model := db.Statement.Schema.ModelType
 
+		// Process Tags
 		for _, field := range db.Statement.Schema.Fields {
 			tag := x.getFieldTag(field)
 
@@ -50,6 +52,19 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 				}
 
 				db = db.Preload(field.Name, args...)
+			}
+		}
+
+		// Process Scopes
+		for i := 0; i < model.NumMethod(); i++ {
+			name := model.Type().Method(i).Name
+
+			if strings.HasPrefix(name, "Scope") {
+				method, ok := model.Method(i).Interface().(scopes.Scope)
+
+				if ok {
+					db = method(db)
+				}
 			}
 		}
 	}
