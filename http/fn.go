@@ -53,7 +53,7 @@ func Request[T any](method, url string, opts ...*RequestOptions) (data T, err er
 			// Parse JSON Content
 			switch vType.Kind() {
 			case reflect.Pointer:
-				data = reflect.New(vType).Interface().(T)
+				data = reflect.New(vType.Elem()).Interface().(T)
 				err2 = json.Unmarshal(b, data)
 			default:
 				err2 = json.Unmarshal(b, &data)
