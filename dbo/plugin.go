@@ -36,22 +36,26 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 
 		// Process Tags
 		for _, field := range db.Statement.Schema.Fields {
-			tag := x.getFieldTag(field)
+			method := model.MethodByName("Preload" + field.Name)
 
-			if tag == nil {
-				continue
+			if method.IsValid() && !method.IsZero() {
+				db = db.Preload(field.Name, method.Interface())
 			}
 
-			if tag.Preload {
-				args := make([]any, 0)
+			tag := x.getFieldTag(field)
 
-				method := model.MethodByName(field.Name + "Preloader")
+			if tag != nil {
+				if tag.Preload {
+					args := make([]any, 0)
 
-				if method.IsValid() && !method.IsZero() {
-					args = append(args, method.Interface())
+					method := model.MethodByName(field.Name + "Preloader")
+
+					if method.IsValid() && !method.IsZero() {
+						args = append(args, method.Interface())
+					}
+
+					db = db.Preload(field.Name, args...)
 				}
-
-				db = db.Preload(field.Name, args...)
 			}
 		}
 
