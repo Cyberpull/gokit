@@ -20,17 +20,21 @@ const (
 )
 
 type Options struct {
-	Driver    DRIVER
-	Host      string
-	Port      string
-	Username  string
-	Password  string
-	DBName    string
-	Charset   string
-	Collation string
-	DSN       string
-	Engine    ENGINE
-	Config    *gorm.Config
+	Driver          DRIVER
+	Host            string
+	Port            string
+	Username        string
+	Password        string
+	DBName          string
+	Charset         string
+	Collation       string
+	DSN             string
+	Engine          ENGINE
+	Config          *gorm.Config
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime int // Maximum lifetime for a connection (in milliseconds)
+	ConnMaxIdleTime int // Maximum idle time for a connection (in milliseconds)
 }
 
 func (c *Options) getConfig() *gorm.Config {

@@ -1,6 +1,8 @@
 package dbo
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -16,6 +18,30 @@ func Connect(opts *Options) (i Instance, err error) {
 
 	if db, err = gorm.Open(conn, config); err != nil {
 		return
+	}
+
+	sqldb, err := db.DB()
+
+	if err != nil {
+		return
+	}
+
+	if opts.MaxOpenConns > 0 {
+		sqldb.SetMaxOpenConns(opts.MaxOpenConns)
+	}
+
+	if opts.MaxIdleConns > 0 {
+		sqldb.SetMaxIdleConns(opts.MaxIdleConns)
+	}
+
+	if opts.ConnMaxLifetime > 0 {
+		duration := time.Millisecond * time.Duration(opts.ConnMaxLifetime)
+		sqldb.SetConnMaxLifetime(duration)
+	}
+
+	if opts.ConnMaxIdleTime > 0 {
+		duration := time.Millisecond * time.Duration(opts.ConnMaxIdleTime)
+		sqldb.SetConnMaxIdleTime(duration)
 	}
 
 	db.Use(NewPlugin())
