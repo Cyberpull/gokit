@@ -1,7 +1,6 @@
 package dbo
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
@@ -13,9 +12,7 @@ import (
 
 type xPluginCallback func(db *gorm.DB)
 
-type xPlugin struct {
-	tags map[string]*xPluginTag
-}
+type xPlugin struct{}
 
 func (x *xPlugin) Name() string {
 	return "gokit-dbo"
@@ -40,22 +37,6 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 
 			if method.IsValid() && !method.IsZero() {
 				db = db.Preload(field.Name, method.Interface())
-			}
-
-			tag := x.getFieldTag(field)
-
-			if tag != nil {
-				if tag.Preload {
-					args := make([]any, 0)
-
-					method := model.MethodByName(field.Name + "Preloader")
-
-					if method.IsValid() && !method.IsZero() {
-						args = append(args, method.Interface())
-					}
-
-					db = db.Preload(field.Name, args...)
-				}
 			}
 		}
 
@@ -82,81 +63,12 @@ func (x *xPlugin) onAfterQuery() xPluginCallback {
 	}
 }
 
-// ==================================
-
 func (x *xPlugin) key(field *schema.Field) (value string) {
 	return fmt.Sprintf("%v.%v", field.Schema.Name, field.Name)
-}
-
-func (x *xPlugin) getFieldTag(field *schema.Field) (tag *xPluginTag) {
-	key := x.key(field)
-
-	if val, ok := x.tags[key]; ok {
-		tag = val
-		return
-	}
-
-	tagString := field.Tag.Get("gokit-dbo")
-
-	if tagString == "" {
-		return
-	}
-
-	tag = &xPluginTag{}
-
-	var isValue bool
-	var kbuff, vbuff bytes.Buffer
-
-	lastindex := len(tagString) - 1
-
-	for i, char := range tagString {
-		switch char {
-		case ':':
-			isValue = true
-
-		case ';':
-			x.updateTagValue(tag, &kbuff, &vbuff)
-			isValue = false
-
-		default:
-			if isValue {
-				vbuff.WriteRune(char)
-			} else {
-				kbuff.WriteRune(char)
-			}
-		}
-
-		if i == lastindex {
-			x.updateTagValue(tag, &kbuff, &vbuff)
-			isValue = false
-			continue
-		}
-	}
-
-	x.tags[key] = tag
-
-	return
-}
-
-func (x *xPlugin) updateTagValue(tag *xPluginTag, kbuff, vbuff *bytes.Buffer) {
-	defer kbuff.Reset()
-	defer vbuff.Reset()
-
-	key := kbuff.String()
-
-	switch key {
-	case "preload":
-		tag.Preload = true
-
-	case "hidden":
-		tag.Hidden = true
-	}
 }
 
 // ==============================================
 
 func NewPlugin() (v *xPlugin) {
-	return &xPlugin{
-		tags: make(map[string]*xPluginTag),
-	}
+	return &xPlugin{}
 }
