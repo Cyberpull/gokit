@@ -29,7 +29,9 @@ func (x *xPlugin) Initialize(db *gorm.DB) (err error) {
 
 func (x *xPlugin) onBeforeQuery() xPluginCallback {
 	return func(db *gorm.DB) {
-		defer recover()
+		defer func() {
+			_ = recover()
+		}()
 
 		model := reflect.New(db.Statement.Schema.ModelType)
 
