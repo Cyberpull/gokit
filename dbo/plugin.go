@@ -29,6 +29,10 @@ func (x *xPlugin) Initialize(db *gorm.DB) (err error) {
 
 func (x *xPlugin) onBeforeQuery() xPluginCallback {
 	return func(db *gorm.DB) {
+		if db == nil {
+			return
+		}
+
 		model := reflect.New(db.Statement.Schema.ModelType)
 
 		// Process Tags
