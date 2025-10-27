@@ -35,14 +35,7 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 
 		model := reflect.New(db.Statement.Schema.ModelType)
 
-		// Process Tags
-		for _, field := range db.Statement.Schema.Fields {
-			method := model.MethodByName("Preload" + field.Name)
-
-			if method.IsValid() && !method.IsZero() {
-				db = db.Preload(field.Name, method.Interface())
-			}
-		}
+		scopeList := []scopes.Scope{}
 
 		// Process Scopes
 		for i := 0; i < model.NumMethod(); i++ {
@@ -52,8 +45,22 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 				method, ok := model.Method(i).Interface().(scopes.Scope)
 
 				if ok {
-					db = method(db)
+					scopeList = append(scopeList, method)
+					// db = method(db)
 				}
+			}
+		}
+
+		if len(scopeList) > 0 {
+			db = db.Scopes(scopeList...)
+		}
+
+		// Process Tags
+		for _, field := range db.Statement.Schema.Fields {
+			method := model.MethodByName("Preload" + field.Name)
+
+			if method.IsValid() && !method.IsZero() {
+				db = db.Preload(field.Name, method.Interface())
 			}
 		}
 	}
