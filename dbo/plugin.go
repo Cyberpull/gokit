@@ -35,8 +35,6 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 
 		model := reflect.New(db.Statement.Schema.ModelType)
 
-		scopeList := []scopes.Scope{}
-
 		// Process Scopes
 		for i := 0; i < model.NumMethod(); i++ {
 			name := model.Type().Method(i).Name
@@ -45,14 +43,9 @@ func (x *xPlugin) onBeforeQuery() xPluginCallback {
 				method, ok := model.Method(i).Interface().(scopes.Scope)
 
 				if ok {
-					scopeList = append(scopeList, method)
-					// db = method(db)
+					db = method(db)
 				}
 			}
-		}
-
-		if len(scopeList) > 0 {
-			db = db.Scopes(scopeList...)
 		}
 
 		// Process Tags
