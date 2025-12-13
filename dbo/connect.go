@@ -6,7 +6,15 @@ import (
 	"gorm.io/gorm"
 )
 
+type ConnectCallback func(db *gorm.DB) *gorm.DB
+
 func Connect(opts *Options) (i Instance, err error) {
+	return ConnectWithCallback(opts, func(db *gorm.DB) *gorm.DB {
+		return db
+	})
+}
+
+func ConnectWithCallback(opts *Options, callback ConnectCallback) (i Instance, err error) {
 	var db *gorm.DB
 	var conn gorm.Dialector
 
@@ -52,6 +60,8 @@ func Connect(opts *Options) (i Instance, err error) {
 		// SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 		// SET DEFAULT_TRANSACTION_ISOLATION TO SERIALIZABLE;
 	}
+
+	db = callback(db)
 
 	i = NewInstance(db, opts)
 

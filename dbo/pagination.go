@@ -24,7 +24,9 @@ func Paginate[T any](tx *gorm.DB, page uint, limit ...uint) (value *Pagination[T
 		limit = append(limit, 20)
 	}
 
-	if tx, err = parseModel[T](tx); err != nil {
+	tx, err = parseModel[T](tx)
+
+	if err != nil {
 		return
 	}
 
@@ -59,6 +61,10 @@ func Paginate[T any](tx *gorm.DB, page uint, limit ...uint) (value *Pagination[T
 	var total int64
 
 	tx = tx.Offset(-1).Limit(-1)
+
+	// if err = tx.Scan(&total).Error; err != nil {
+	// 	return
+	// }
 
 	if err = tx.Count(&total).Error; err != nil {
 		return
