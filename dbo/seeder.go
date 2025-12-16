@@ -9,6 +9,11 @@ import (
 
 type SeederHandler func(db *gorm.DB) (err error)
 
+type DBSeeder interface {
+	AddEntries(entries ...SeederEntry)
+	Run(db *gorm.DB) (err error)
+}
+
 type SeederEntry interface {
 	Name() string
 	Handler(db *gorm.DB) (err error)
@@ -67,6 +72,10 @@ func (x *dbSeeder) RunEntry(db *gorm.DB, entry SeederEntry) (err error) {
 // ===================
 
 var Seeder dbSeeder
+
+func NewSeeder() DBSeeder {
+	return newSeeder(Seeder.opts)
+}
 
 func newSeeder(opts *Options) *dbSeeder {
 	s := &dbSeeder{opts: opts}
