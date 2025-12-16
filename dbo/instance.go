@@ -65,6 +65,12 @@ func (s *dbInstance) Migrate(seed ...bool) (err error) {
 }
 
 func (s *dbInstance) Seed(entries ...SeederEntry) (err error) {
+	err = s.seeders.Seed(s.db, entries)
+
+	if err != nil {
+		return
+	}
+
 	return s.seeders.Run(s.db)
 }
 
