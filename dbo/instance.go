@@ -10,6 +10,7 @@ type Instance interface {
 	New() *gorm.DB
 	DB(db ...*gorm.DB) (value *gorm.DB, err error)
 	AddMigrations(models ...any)
+	AddSeederEntries(entries ...SeederEntry)
 	AddSeeders(handlers ...SeederHandler)
 	Migrate(seed ...bool) (err error)
 	Seed() (err error)

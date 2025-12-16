@@ -59,7 +59,7 @@ func (x *dbSeeder) RunEntry(db *gorm.DB, entry SeederEntry) (err error) {
 		return
 	}
 
-	fmt.Magenta.Println(" Completed!")
+	fmt.Magenta.Println("Completed!")
 
 	return
 }
