@@ -52,6 +52,10 @@ func (s *dbInstance) AddSeeders(handlers ...SeederHandler) {
 	s.seeders.Add(handlers...)
 }
 
+func (s *dbInstance) AddSeederEntries(entries ...SeederEntry) {
+	s.seeders.AddEntries(entries...)
+}
+
 func (s *dbInstance) Migrate(seed ...bool) (err error) {
 	if err = s.migrations.Run(s.db); err != nil {
 		return
