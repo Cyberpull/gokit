@@ -10,8 +10,7 @@ import (
 type SeederHandler func(db *gorm.DB) (err error)
 
 type DBSeeder interface {
-	AddEntries(entries ...SeederEntry)
-	Run(db *gorm.DB) (err error)
+	Seed(db *gorm.DB, entries []SeederEntry) (err error)
 }
 
 type SeederEntry interface {
@@ -21,7 +20,6 @@ type SeederEntry interface {
 
 type dbSeeder struct {
 	opts     *Options
-	entries  []SeederEntry
 	handlers []SeederHandler
 }
 
@@ -29,19 +27,7 @@ func (x *dbSeeder) Add(handlers ...SeederHandler) {
 	x.handlers = append(x.handlers, handlers...)
 }
 
-func (x *dbSeeder) AddEntries(entries ...SeederEntry) {
-	x.entries = append(x.entries, entries...)
-}
-
 func (x *dbSeeder) Run(db *gorm.DB) (err error) {
-	for _, entry := range x.entries {
-		tx := NewSession(db)
-
-		if err = x.RunEntry(tx, entry); err != nil {
-			return
-		}
-	}
-
 	for _, handler := range x.handlers {
 		tx := NewSession(db)
 
@@ -69,6 +55,18 @@ func (x *dbSeeder) RunEntry(db *gorm.DB, entry SeederEntry) (err error) {
 	return
 }
 
+func (x *dbSeeder) Seed(db *gorm.DB, entries []SeederEntry) (err error) {
+	for _, entry := range entries {
+		tx := NewSession(db)
+
+		if err = x.RunEntry(tx, entry); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 // ===================
 
 var Seeder dbSeeder
@@ -84,7 +82,6 @@ func newSeeder(opts *Options) *dbSeeder {
 }
 
 func initSeeders(x *dbSeeder) {
-	x.entries = []SeederEntry{}
 	x.handlers = []SeederHandler{}
 }
 

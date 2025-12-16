@@ -10,10 +10,9 @@ type Instance interface {
 	New() *gorm.DB
 	DB(db ...*gorm.DB) (value *gorm.DB, err error)
 	AddMigrations(models ...any)
-	AddSeederEntries(entries ...SeederEntry)
 	AddSeeders(handlers ...SeederHandler)
 	Migrate(seed ...bool) (err error)
-	Seed() (err error)
+	Seed(entries ...SeederEntry) (err error)
 }
 
 // ======================
@@ -53,10 +52,6 @@ func (s *dbInstance) AddSeeders(handlers ...SeederHandler) {
 	s.seeders.Add(handlers...)
 }
 
-func (s *dbInstance) AddSeederEntries(entries ...SeederEntry) {
-	s.seeders.AddEntries(entries...)
-}
-
 func (s *dbInstance) Migrate(seed ...bool) (err error) {
 	if err = s.migrations.Run(s.db); err != nil {
 		return
@@ -69,7 +64,7 @@ func (s *dbInstance) Migrate(seed ...bool) (err error) {
 	return
 }
 
-func (s *dbInstance) Seed() (err error) {
+func (s *dbInstance) Seed(entries ...SeederEntry) (err error) {
 	return s.seeders.Run(s.db)
 }
 
